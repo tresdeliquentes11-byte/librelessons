@@ -153,6 +153,20 @@ CREATE TABLE zastepstwa (
     FOREIGN KEY (nauczyciel_zastepujacy_id) REFERENCES nauczyciele(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Tabela nauczyciel do sali
+CREATE TABLE `sala_nauczyciele` (
+  `id` int(11) NOT NULL,
+  `sala_id` int(11) NOT NULL,
+  `nauczyciel_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Tabela przedmiot do sali
+CREATE TABLE `sala_przedmioty` (
+  `id` int(11) NOT NULL,
+  `sala_id` int(11) NOT NULL,
+  `przedmiot_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- Wstępne dane - przedmioty
 INSERT INTO przedmioty (nazwa, skrot, czy_rozszerzony, domyslna_ilosc_godzin) VALUES
 ('Matematyka', 'MAT', FALSE, 5),
