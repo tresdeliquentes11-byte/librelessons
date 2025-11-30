@@ -95,6 +95,7 @@ $przedmioty = $conn->query("SELECT * FROM przedmioty ORDER BY nazwa");
                 <li><a href="nauczyciele.php" class="active">Nauczyciele</a></li>
                 <li><a href="klasy.php">Klasy</a></li>
                 <li><a href="przedmioty.php">Przedmioty</a></li>
+                <li><a href="sale.php">Sale</a></li>
                 <li><a href="kalendarz.php">Kalendarz</a></li>
                 <li><a href="plan_podglad.php">Podgląd Planu</a></li>
             </ul>

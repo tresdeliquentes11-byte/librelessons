@@ -172,12 +172,32 @@ INSERT INTO przedmioty (nazwa, skrot, czy_rozszerzony, domyslna_ilosc_godzin) VA
 ('WF', 'WF', FALSE, 4),
 ('Informatyka', 'INF', FALSE, 2);
 
+-- Wstępne dane - klasy
+INSERT INTO klasy (nazwa, ilosc_godzin_dziennie) VALUES
+('1A', 7), ('1B', 7), ('1C', 7),
+('2A', 7), ('2B', 7), ('2C', 7),
+('3A', 7), ('3B', 7), ('3C', 7),
+('4A', 8), ('4B', 8), ('4C', 8);
+
 -- Domyślny użytkownik - dyrektor (hasło: dyrektor123)
 -- Hash wygenerowany dla hasła 'dyrektor123'
 INSERT INTO uzytkownicy (login, haslo, typ, imie, nazwisko, email) VALUES
-('dyrektor', '$2y$10$kZ5H3YvN8qX9mW7pL4rJ1.eF2vK8sT6nM9bC1dA3gH4jE5fI6lO7m', 'dyrektor', 'Grażyna', 'Załuga', 'dyrektor@szkola.pl');
+('dyrektor', '$2y$10$kZ5H3YvN8qX9mW7pL4rJ1.eF2vK8sT6nM9bC1dA3gH4jE5fI6lO7m', 'dyrektor', 'Jan', 'Kowalski', 'dyrektor@szkola.pl');
 
 -- Domyślny użytkownik - administrator (hasło: admin123)
 -- Hash wygenerowany dla hasła 'admin123'
 INSERT INTO uzytkownicy (login, haslo, typ, imie, nazwisko, email) VALUES
 ('admin', '$2y$10$vT9B2nX8cQ7fM6gR5jK4sL.aP3bY1eU4wO8zD9hN6iC2mF5tE7kA1', 'administrator', 'Anna', 'Nowak', 'admin@szkola.pl');
+
+-- Przykładowe sale
+INSERT INTO sale (numer, nazwa) VALUES
+('101', 'Sala matematyczna'),
+('102', 'Sala językowa'),
+('103', 'Sala polonistyczna'),
+('104', 'Sala historyczna'),
+('105', 'Sala geograficzna'),
+('201', 'Pracownia fizyczna'),
+('202', 'Pracownia chemiczna'),
+('203', 'Pracownia biologiczna'),
+('204', 'Pracownia informatyczna'),
+('SALA-WF', 'Sala gimnastyczna');

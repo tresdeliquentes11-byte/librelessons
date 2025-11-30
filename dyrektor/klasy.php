@@ -30,19 +30,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['przypisz_przedmioty']
     $conn->query("DELETE FROM klasa_przedmioty WHERE klasa_id = $klasa_id");
     
     // Dodaj nowe przypisania
+    $liczba_przypisanych = 0;
     foreach ($_POST['przedmioty'] as $przedmiot_id => $dane) {
-        if (!empty($dane['nauczyciel_id']) && !empty($dane['godziny'])) {
-            $nauczyciel_id = $dane['nauczyciel_id'];
-            $godziny = $dane['godziny'];
+        // Sprawdź czy nauczyciel jest wybrany I liczba godzin jest większa od 0
+        if (!empty($dane['nauczyciel_id']) && isset($dane['godziny']) && $dane['godziny'] > 0) {
+            $nauczyciel_id = intval($dane['nauczyciel_id']);
+            $godziny = intval($dane['godziny']);
             
             $stmt = $conn->prepare("INSERT INTO klasa_przedmioty (klasa_id, przedmiot_id, nauczyciel_id, ilosc_godzin_tydzien) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("iiii", $klasa_id, $przedmiot_id, $nauczyciel_id, $godziny);
-            $stmt->execute();
+            if ($stmt->execute()) {
+                $liczba_przypisanych++;
+            }
         }
     }
     
-    $message = 'Przedmioty zostały przypisane do klasy';
-    $message_type = 'success';
+    if ($liczba_przypisanych > 0) {
+        $message = "Zapisano {$liczba_przypisanych} przedmiotów dla klasy";
+        $message_type = 'success';
+    } else {
+        $message = 'Nie przypisano żadnych przedmiotów. Upewnij się że wybrałeś nauczycieli i ustawiłeś liczbę godzin > 0';
+        $message_type = 'warning';
+    }
 }
 
 // Pobierz klasy
@@ -97,6 +106,7 @@ if (isset($_GET['klasa_id'])) {
                 <li><a href="nauczyciele.php">Nauczyciele</a></li>
                 <li><a href="klasy.php" class="active">Klasy</a></li>
                 <li><a href="przedmioty.php">Przedmioty</a></li>
+                <li><a href="sale.php">Sale</a></li>
                 <li><a href="kalendarz.php">Kalendarz</a></li>
                 <li><a href="plan_podglad.php">Podgląd Planu</a></li>
             </ul>
@@ -177,6 +187,36 @@ if (isset($_GET['klasa_id'])) {
                 
                 <div class="card">
                     <h3 class="card-title">Przypisz przedmioty i nauczycieli dla klasy <?php echo e($selected_klasa['nazwa']); ?></h3>
+                    
+                    <?php
+                    // Sprawdź czy są przedmioty bez nauczycieli
+                    $przedmioty_bez_nauczycieli = [];
+                    $przedmioty->data_seek(0);
+                    while ($p = $przedmioty->fetch_assoc()) {
+                        $count = $conn->query("
+                            SELECT COUNT(*) as cnt
+                            FROM nauczyciel_przedmioty
+                            WHERE przedmiot_id = {$p['id']}
+                        ")->fetch_assoc()['cnt'];
+                        
+                        if ($count == 0) {
+                            $przedmioty_bez_nauczycieli[] = $p['nazwa'];
+                        }
+                    }
+                    
+                    if (count($przedmioty_bez_nauczycieli) > 0):
+                    ?>
+                        <div class="alert alert-warning">
+                            <strong>⚠ Uwaga!</strong> Następujące przedmioty nie mają przypisanych nauczycieli:
+                            <ul style="margin: 10px 0;">
+                                <?php foreach ($przedmioty_bez_nauczycieli as $przedmiot): ?>
+                                    <li><?php echo e($przedmiot); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <p>Przejdź do zakładki <a href="nauczyciele.php" style="color: #856404; font-weight: bold;">Nauczyciele</a> aby przypisać nauczycieli do tych przedmiotów.</p>
+                        </div>
+                    <?php endif; ?>
+                    
                     <form method="POST">
                         <input type="hidden" name="klasa_id" value="<?php echo $selected_klasa['id']; ?>">
                         
@@ -200,20 +240,60 @@ if (isset($_GET['klasa_id'])) {
                                     ")->fetch_assoc();
                                 ?>
                                     <tr>
-                                        <td><?php echo e($p['nazwa']); ?></td>
+                                        <td>
+                                            <?php echo e($p['nazwa']); ?>
+                                            <?php
+                                            // Policz ilu nauczycieli może uczyć tego przedmiotu
+                                            $liczba_nauczycieli = $conn->query("
+                                                SELECT COUNT(*) as cnt
+                                                FROM nauczyciel_przedmioty
+                                                WHERE przedmiot_id = {$p['id']}
+                                            ")->fetch_assoc()['cnt'];
+                                            
+                                            if ($liczba_nauczycieli > 0):
+                                            ?>
+                                                <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 10px;">
+                                                    <?php echo $liczba_nauczycieli; ?> nauczycieli
+                                                </span>
+                                            <?php else: ?>
+                                                <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 10px;">
+                                                    0 nauczycieli
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <select name="przedmioty[<?php echo $p['id']; ?>][nauczyciel_id]">
                                                 <option value="">Brak</option>
                                                 <?php 
-                                                $nauczyciele->data_seek(0);
-                                                while ($n = $nauczyciele->fetch_assoc()): 
+                                                // Pobierz TYLKO nauczycieli którzy uczą tego przedmiotu
+                                                $nauczyciele_przedmiotu = $conn->query("
+                                                    SELECT n.id, u.imie, u.nazwisko
+                                                    FROM nauczyciele n
+                                                    JOIN uzytkownicy u ON n.uzytkownik_id = u.id
+                                                    JOIN nauczyciel_przedmioty np ON n.id = np.nauczyciel_id
+                                                    WHERE np.przedmiot_id = {$p['id']}
+                                                    ORDER BY u.nazwisko, u.imie
+                                                ");
+                                                
+                                                if ($nauczyciele_przedmiotu->num_rows > 0):
+                                                    while ($n = $nauczyciele_przedmiotu->fetch_assoc()): 
                                                 ?>
                                                     <option value="<?php echo $n['id']; ?>" 
                                                         <?php echo ($przypisanie && $n['id'] == $przypisanie['nauczyciel_id']) ? 'selected' : ''; ?>>
                                                         <?php echo e($n['imie'] . ' ' . $n['nazwisko']); ?>
                                                     </option>
-                                                <?php endwhile; ?>
+                                                <?php 
+                                                    endwhile;
+                                                else: 
+                                                ?>
+                                                    <option value="" disabled style="color: red;">Brak nauczycieli tego przedmiotu</option>
+                                                <?php endif; ?>
                                             </select>
+                                            <?php if ($nauczyciele_przedmiotu->num_rows == 0): ?>
+                                                <small style="color: red; display: block; margin-top: 5px;">
+                                                    ⚠ Najpierw przypisz nauczycieli do tego przedmiotu w zakładce "Nauczyciele"
+                                                </small>
+                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <input type="number" 
