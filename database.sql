@@ -175,7 +175,7 @@ INSERT INTO przedmioty (nazwa, skrot, czy_rozszerzony, domyslna_ilosc_godzin) VA
 -- Domyślny użytkownik - dyrektor (hasło: dyrektor123)
 -- Hash wygenerowany dla hasła 'dyrektor123'
 INSERT INTO uzytkownicy (login, haslo, typ, imie, nazwisko, email) VALUES
-('dyrektor', '$2y$10$kZ5H3YvN8qX9mW7pL4rJ1.eF2vK8sT6nM9bC1dA3gH4jE5fI6lO7m', 'dyrektor', 'Jan', 'Kowalski', 'dyrektor@szkola.pl');
+('dyrektor', '$2y$10$kZ5H3YvN8qX9mW7pL4rJ1.eF2vK8sT6nM9bC1dA3gH4jE5fI6lO7m', 'dyrektor', 'Grażyna', 'Załuga', 'dyrektor@szkola.pl');
 
 -- Domyślny użytkownik - administrator (hasło: admin123)
 -- Hash wygenerowany dla hasła 'admin123'
