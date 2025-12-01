@@ -36,7 +36,7 @@ class GeneratorPlanu {
         return $sukces;
     }
     
-    // Generowanie planu dla konkretnej klasy
+    // Generowanie planu dla konkretnej klasy - NAPRAWIONE
     private function generujPlanDlaKlasy($klasa) {
         $klasa_id = $klasa['id'];
         
@@ -53,32 +53,61 @@ class GeneratorPlanu {
             return false;
         }
         
-        // Tworzymy listę wszystkich lekcji do rozplanowania
+        // Tworzymy listę wszystkich lekcji do rozplanowania - DOKŁADNIE tyle ile w ilosc_godzin_tydzien
         $lekcje_do_rozplanowania = [];
+        $suma_godzin = 0;
+        
         while ($przedmiot = $przedmioty->fetch_assoc()) {
-            for ($i = 0; $i < $przedmiot['ilosc_godzin_tydzien']; $i++) {
-                $lekcje_do_rozplanowania[] = $przedmiot;
+            $godziny_tego_przedmiotu = intval($przedmiot['ilosc_godzin_tydzien']);
+            $suma_godzin += $godziny_tego_przedmiotu;
+            
+            // Dodajemy DOKŁADNIE tyle lekcji ile jest w ilosc_godzin_tydzien
+            for ($i = 0; $i < $godziny_tego_przedmiotu; $i++) {
+                $lekcje_do_rozplanowania[] = [
+                    'przedmiot_id' => $przedmiot['przedmiot_id'],
+                    'nauczyciel_id' => $przedmiot['nauczyciel_id'],
+                    'nazwa' => $przedmiot['nazwa'],
+                    'skrot' => $przedmiot['skrot'],
+                    'numer_w_przedmiocie' => $i + 1,
+                    'suma_dla_przedmiotu' => $godziny_tego_przedmiotu
+                ];
             }
         }
         
-        // Mieszamy lekcje dla lepszego rozłożenia
-        shuffle($lekcje_do_rozplanowania);
+        // Sprawdź czy suma godzin nie przekracza limitu
+        $max_godzin_tydzien = 5 * $klasa['ilosc_godzin_dziennie'];
+        if ($suma_godzin > $max_godzin_tydzien) {
+            error_log("BŁĄD: Klasa {$klasa['nazwa']} ma {$suma_godzin}h przypisanych, ale maksimum to {$max_godzin_tydzien}h");
+            return false;
+        }
         
-        // Rozplanowujemy lekcje
-        $plan = [];
+        // Inteligentne rozłożenie - rozdzielamy ten sam przedmiot równomiernie
+        $lekcje_rozlozone = $this->rozmieszczLekcjeRownomiernie($lekcje_do_rozplanowania);
+        
+        // Rozplanowujemy lekcje dzień po dniu
         $max_godzin = $klasa['ilosc_godzin_dziennie'];
-        $dni_count = count($this->dni);
+        $przydzielone_lekcje = 0;
         
-        $index = 0;
         foreach ($this->dni as $dzien_idx => $dzien) {
             for ($lekcja_nr = 1; $lekcja_nr <= $max_godzin; $lekcja_nr++) {
-                if ($index < count($lekcje_do_rozplanowania)) {
-                    $przedmiot = $lekcje_do_rozplanowania[$index];
+                if (count($lekcje_rozlozone) == 0) {
+                    break; // Wszystkie lekcje już przydzielone
+                }
+                
+                $max_proby = 20; // Zwiększone do 20 prób
+                $przydzielono = false;
+                
+                // Próbujemy przydzielić tę lekcję lub znaleźć alternatywę
+                for ($proba = 0; $proba < $max_proby; $proba++) {
+                    if (count($lekcje_rozlozone) == 0) break;
+                    
+                    $idx_do_sprawdzenia = $proba % count($lekcje_rozlozone);
+                    $lekcja_do_sprawdzenia = $lekcje_rozlozone[$idx_do_sprawdzenia];
                     
                     // Sprawdzamy czy nauczyciel jest dostępny
-                    if ($this->sprawdzDostepnoscNauczyciela($przedmiot['nauczyciel_id'], $dzien, $lekcja_nr, $klasa_id)) {
-                        // Pobieramy salę (z uwzględnieniem preferencji dla przedmiotu i nauczyciela)
-                        $sala_id = $this->przydzielSale($dzien, $lekcja_nr, $klasa_id, $przedmiot['przedmiot_id'], $przedmiot['nauczyciel_id']);
+                    if ($this->sprawdzDostepnoscNauczyciela($lekcja_do_sprawdzenia['nauczyciel_id'], $dzien, $lekcja_nr, $klasa_id)) {
+                        // Pobieramy salę
+                        $sala_id = $this->przydzielSale($dzien, $lekcja_nr, $klasa_id, $lekcja_do_sprawdzenia['przedmiot_id'], $lekcja_do_sprawdzenia['nauczyciel_id']);
                         
                         // Obliczamy godziny
                         $godziny = $this->obliczGodziny($lekcja_nr);
@@ -97,19 +126,130 @@ class GeneratorPlanu {
                             $lekcja_nr,
                             $godziny['start'],
                             $godziny['koniec'],
-                            $przedmiot['przedmiot_id'],
-                            $przedmiot['nauczyciel_id'],
+                            $lekcja_do_sprawdzenia['przedmiot_id'],
+                            $lekcja_do_sprawdzenia['nauczyciel_id'],
                             $sala_id
                         );
                         
-                        $stmt->execute();
-                        $index++;
+                        if ($stmt->execute()) {
+                            // Usuwamy przydzieloną lekcję z listy
+                            array_splice($lekcje_rozlozone, $idx_do_sprawdzenia, 1);
+                            $przydzielone_lekcje++;
+                            $przydzielono = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!$przydzielono && count($lekcje_rozlozone) > 0) {
+                    // Jeśli nie udało się przydzielić, przesuń na koniec
+                    $lekcja_problematyczna = array_shift($lekcje_rozlozone);
+                    array_push($lekcje_rozlozone, $lekcja_problematyczna);
+                    error_log("UWAGA: Nie można przydzielić lekcji dla klasy {$klasa['nazwa']}, $dzien, godzina $lekcja_nr");
+                }
+            }
+        }
+        
+        // FAZA 2: Wypełnij pozostałe okienka jeśli coś zostało
+        if (count($lekcje_rozlozone) > 0) {
+            error_log("FAZA 2 dla klasy {$klasa['nazwa']}: Próba wypełnienia okienek. Pozostało: " . count($lekcje_rozlozone) . "/{$suma_godzin} lekcji");
+            
+            // Znajdź wszystkie puste sloty w już wygenerowanym planie
+            foreach ($this->dni as $dzien_idx => $dzien) {
+                for ($lekcja_nr = 1; $lekcja_nr <= $max_godzin; $lekcja_nr++) {
+                    if (count($lekcje_rozlozone) == 0) break 2; // Wszystko przydzielone
+                    
+                    // Sprawdź czy ten slot jest pusty
+                    $sprawdz = $this->conn->query("
+                        SELECT COUNT(*) as cnt
+                        FROM plan_lekcji
+                        WHERE klasa_id = $klasa_id
+                        AND dzien_tygodnia = '$dzien'
+                        AND numer_lekcji = $lekcja_nr
+                        AND szablon_tygodniowy = 1
+                    ");
+                    $jest_zajety = $sprawdz->fetch_assoc()['cnt'] > 0;
+                    
+                    if (!$jest_zajety) {
+                        // Slot pusty - próbuj wstawić jakąś pozostałą lekcję
+                        for ($i = 0; $i < count($lekcje_rozlozone); $i++) {
+                            $lekcja = $lekcje_rozlozone[$i];
+                            
+                            if ($this->sprawdzDostepnoscNauczyciela($lekcja['nauczyciel_id'], $dzien, $lekcja_nr, $klasa_id)) {
+                                $sala_id = $this->przydzielSale($dzien, $lekcja_nr, $klasa_id, $lekcja['przedmiot_id'], $lekcja['nauczyciel_id']);
+                                $godziny = $this->obliczGodziny($lekcja_nr);
+                                
+                                $stmt = $this->conn->prepare("
+                                    INSERT INTO plan_lekcji 
+                                    (klasa_id, dzien_tygodnia, numer_lekcji, godzina_rozpoczecia, godzina_zakonczenia, 
+                                     przedmiot_id, nauczyciel_id, sala_id, szablon_tygodniowy)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                                ");
+                                
+                                $stmt->bind_param("isissiii",
+                                    $klasa_id,
+                                    $dzien,
+                                    $lekcja_nr,
+                                    $godziny['start'],
+                                    $godziny['koniec'],
+                                    $lekcja['przedmiot_id'],
+                                    $lekcja['nauczyciel_id'],
+                                    $sala_id
+                                );
+                                
+                                if ($stmt->execute()) {
+                                    array_splice($lekcje_rozlozone, $i, 1);
+                                    $przydzielone_lekcje++;
+                                    error_log("FAZA 2 SUKCES: Wypełniono okienko $dzien lekcja $lekcja_nr dla klasy {$klasa['nazwa']}");
+                                    break; // Przejdź do następnego slotu
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
         
+        // Raport końcowy
+        if ($przydzielone_lekcje < $suma_godzin) {
+            error_log("UWAGA: Dla klasy {$klasa['nazwa']} przydzielono {$przydzielone_lekcje}/{$suma_godzin} lekcji");
+        } else {
+            error_log("SUKCES: Dla klasy {$klasa['nazwa']} przydzielono wszystkie {$suma_godzin} lekcji");
+        }
+        
         return true;
+    }
+    
+    // Inteligentne rozmieszczenie lekcji - rozdziela te same przedmioty
+    private function rozmieszczLekcjeRownomiernie($lekcje) {
+        // Grupuj lekcje według przedmiotu
+        $grupy_przedmiotow = [];
+        foreach ($lekcje as $lekcja) {
+            $przedmiot_id = $lekcja['przedmiot_id'];
+            if (!isset($grupy_przedmiotow[$przedmiot_id])) {
+                $grupy_przedmiotow[$przedmiot_id] = [];
+            }
+            $grupy_przedmiotow[$przedmiot_id][] = $lekcja;
+        }
+        
+        // Sortuj grupy - największe najpierw
+        uasort($grupy_przedmiotow, function($a, $b) {
+            return count($b) - count($a);
+        });
+        
+        // Rozplanuj równomiernie - "round-robin"
+        $wynik = [];
+        $max_size = max(array_map('count', $grupy_przedmiotow));
+        
+        for ($i = 0; $i < $max_size; $i++) {
+            foreach ($grupy_przedmiotow as $grupa) {
+                if (isset($grupa[$i])) {
+                    $wynik[] = $grupa[$i];
+                }
+            }
+        }
+        
+        return $wynik;
     }
     
     // Sprawdzanie dostępności nauczyciela
@@ -211,6 +351,7 @@ class GeneratorPlanu {
     private function obliczGodziny($numer_lekcji) {
         $start_timestamp = strtotime($this->godzina_rozpoczecia);
         
+        // Każda lekcja + przerwa to 55 minut (45 + 10)
         $minutes_offset = ($numer_lekcji - 1) * ($this->czas_lekcji + $this->czas_przerwy);
         
         $start = date('H:i:s', strtotime("+$minutes_offset minutes", $start_timestamp));
@@ -221,6 +362,7 @@ class GeneratorPlanu {
     
     // Generowanie planu dziennego na cały rok szkolny
     public function generujPlanRoczny() {
+        // Rok szkolny: 1 września - 30 czerwca
         $rok_biezacy = date('Y');
         $rok_nastepny = $rok_biezacy + 1;
         

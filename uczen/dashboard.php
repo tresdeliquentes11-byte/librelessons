@@ -17,9 +17,26 @@ $klasa_id = $uczen['id'];
 $klasa_nazwa = $uczen['nazwa'];
 
 // Pobierz tydzień
-$tydzien_offset = $_GET['tydzien'] ?? 0;
-$poczatek_tygodnia = date('Y-m-d', strtotime("monday this week +" . ($tydzien_offset * 7) . " days"));
-$koniec_tygodnia = date('Y-m-d', strtotime("friday this week +" . ($tydzien_offset * 7) . " days"));
+$tydzien_offset = intval($_GET['tydzien'] ?? 0);
+
+// Oblicz daty tygodnia - NAPRAWIONE
+$dzisiaj = new DateTime();
+$dzien_tygodnia = $dzisiaj->format('N'); // 1 = poniedziałek, 7 = niedziela
+
+// Oblicz poniedziałek bieżącego tygodnia
+$poniedzialek_tego_tygodnia = clone $dzisiaj;
+$poniedzialek_tego_tygodnia->modify('-' . ($dzien_tygodnia - 1) . ' days');
+
+// Dodaj offset tygodni
+$poniedzialek_docelowy = clone $poniedzialek_tego_tygodnia;
+$poniedzialek_docelowy->modify(($tydzien_offset > 0 ? '+' : '') . $tydzien_offset . ' weeks');
+
+// Oblicz piątek tego samego tygodnia
+$piatek_docelowy = clone $poniedzialek_docelowy;
+$piatek_docelowy->modify('+4 days');
+
+$poczatek_tygodnia = $poniedzialek_docelowy->format('Y-m-d');
+$koniec_tygodnia = $piatek_docelowy->format('Y-m-d');
 
 // Pobierz plan
 $plan_query = $conn->query("
