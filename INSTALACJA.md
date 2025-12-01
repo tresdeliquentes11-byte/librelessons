@@ -3,7 +3,7 @@
 ## Krok 1: Przygotowanie
 
 Upewnij się, że masz zainstalowane:
-- PHP 7.4+
+- PHP 8.2+
 - MySQL/MariaDB
 - Serwer Apache/Nginx
 - phpMyAdmin (opcjonalnie, ułatwia zarządzanie bazą)
