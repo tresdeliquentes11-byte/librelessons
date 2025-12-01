@@ -287,10 +287,6 @@ System można rozwijać o dodatkowe funkcjonalności:
 
 Ten system został stworzony na potrzeby edukacyjne. Możesz go swobodnie modyfikować i dostosowywać do swoich potrzeb.
 
-## Autor
-
-System stworzony przez Claude (Anthropic) na zamówienie użytkownika.
-
 ---
 
 Ostatnia aktualizacja: Listopad 2024
