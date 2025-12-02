@@ -72,12 +72,13 @@ if (isset($_GET['akcja'])) {
             break;
 
         case 'usun':
+            // NAJPIERW loguj (przed usunięciem!)
+            loguj_operacje_uzytkownika('usuniecie', $id, "Usunięto dyrektora ID: $id");
+
+            // POTEM usuń
             $result = usun_uzytkownika($id);
             $message = $result['message'];
             $message_type = $result['success'] ? 'success' : 'error';
-            if ($result['success']) {
-                loguj_operacje_uzytkownika('usuniecie', $id, "Usunięto dyrektora ID: $id");
-            }
             break;
     }
 }
