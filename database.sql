@@ -1,11 +1,6 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Dec 01, 2025 at 07:07 AM
--- Wersja serwera: 10.4.32-MariaDB
--- Wersja PHP: 8.2.12
+-- Zeby utworzyc baze dla aplikacji
+-- Stworz baze w phpmyadmin o nazwie 'plan_lekcji'
+-- I zaimportuj ten plik
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -79,6 +74,23 @@ INSERT INTO `klasy` (`id`, `nazwa`, `wychowawca_id`, `ilosc_godzin_dziennie`, `r
 (10, '4A', NULL, 8, 'Matematyka rozszerzona', 'Fizyka rozszerzona'),
 (11, '4B', NULL, 8, 'Matematyka rozszerzona', 'Język angielski rozszerzony'),
 (12, '4C', NULL, 8, 'Fizyka rozszerzona', 'Język angielski rozszerzony');
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `logi_aktywnosci`
+--
+
+CREATE TABLE `logi_aktywnosci` (
+  `id` int(11) NOT NULL,
+  `uzytkownik_id` int(11) DEFAULT NULL,
+  `typ_akcji` varchar(50) NOT NULL,
+  `opis` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `data_akcji` timestamp NOT NULL DEFAULT current_timestamp(),
+  `dodatkowe_dane` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -183,7 +195,6 @@ INSERT INTO `przedmioty` (`id`, `nazwa`, `skrot`, `czy_rozszerzony`, `domyslna_i
 (4, 'Język angielski', 'ANG', 0, 3),
 (5, 'Język angielski rozszerzony', 'ANG-R', 1, 2),
 (6, 'Geografia', 'GEO', 0, 1),
-(7, 'Biologia', 'BIO', 0, 1),
 (8, 'Chemia', 'CHEM', 0, 1),
 (9, 'Fizyka', 'FIZ', 0, 1),
 (10, 'Fizyka rozszerzona', 'FIZ-R', 1, 1),
@@ -233,7 +244,6 @@ INSERT INTO `sala_przedmioty` (`id`, `sala_id`, `przedmiot_id`) VALUES
 (33, 6, 9),
 (34, 6, 10),
 (35, 7, 8),
-(36, 8, 7),
 (37, 9, 16),
 (38, 10, 15),
 (19, 11, 1),
@@ -252,7 +262,6 @@ INSERT INTO `sala_przedmioty` (`id`, `sala_id`, `przedmiot_id`) VALUES
 (27, 19, 9),
 (28, 19, 10),
 (29, 20, 8),
-(30, 21, 7),
 (31, 22, 16),
 (32, 23, 15),
 (39, 24, 14);
@@ -300,6 +309,56 @@ INSERT INTO `sale` (`id`, `numer`, `nazwa`, `typ`, `pojemnosc`) VALUES
 (22, '117', 'Pracownia informatyczna', 'pracownia', 30),
 (23, '118', 'Sala gimnastyczna', 'sportowa', 30),
 (24, '119', 'Sala kulturoznawcza', 'specjalna', 30);
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `sesje_uzytkownikow`
+--
+
+CREATE TABLE `sesje_uzytkownikow` (
+  `id` int(11) NOT NULL,
+  `uzytkownik_id` int(11) NOT NULL,
+  `session_id` varchar(255) NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `ostatnia_aktywnosc` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `data_logowania` timestamp NOT NULL DEFAULT current_timestamp(),
+  `aktywna` tinyint(1) DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `statystyki_generowania`
+--
+
+CREATE TABLE `statystyki_generowania` (
+  `id` int(11) NOT NULL,
+  `uzytkownik_id` int(11) NOT NULL,
+  `typ_generowania` enum('plan_tygodniowy','plan_dzienny','zastepstwa') NOT NULL,
+  `data_generowania` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('sukces','blad','przerwane') DEFAULT 'sukces',
+  `czas_trwania_sekundy` decimal(10,2) DEFAULT NULL,
+  `ilosc_wygenerowanych_lekcji` int(11) DEFAULT 0,
+  `komunikat_bledu` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktura tabeli dla tabeli `statystyki_uzytkownikow`
+--
+
+CREATE TABLE `statystyki_uzytkownikow` (
+  `id` int(11) NOT NULL,
+  `administrator_id` int(11) NOT NULL,
+  `typ_operacji` enum('dodanie','edycja','usuniecie','blokada','odblokowanie') NOT NULL,
+  `uzytkownik_docelowy_id` int(11) DEFAULT NULL,
+  `typ_uzytkownika_docelowego` enum('dyrektor','administrator','nauczyciel','uczen') DEFAULT NULL,
+  `data_operacji` timestamp NOT NULL DEFAULT current_timestamp(),
+  `opis_zmian` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -382,6 +441,16 @@ ALTER TABLE `klasy`
   ADD KEY `klasy_ibfk_1` (`wychowawca_id`);
 
 --
+-- Indeksy dla tabeli `logi_aktywnosci`
+--
+ALTER TABLE `logi_aktywnosci`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `uzytkownik_id` (`uzytkownik_id`),
+  ADD KEY `typ_akcji` (`typ_akcji`),
+  ADD KEY `data_akcji` (`data_akcji`),
+  ADD KEY `idx_logi_ostatnie` (`data_akcji`);
+
+--
 -- Indeksy dla tabeli `nauczyciele`
 --
 ALTER TABLE `nauczyciele`
@@ -456,6 +525,34 @@ ALTER TABLE `sale`
   ADD UNIQUE KEY `numer` (`numer`);
 
 --
+-- Indeksy dla tabeli `sesje_uzytkownikow`
+--
+ALTER TABLE `sesje_uzytkownikow`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `uzytkownik_id` (`uzytkownik_id`),
+  ADD KEY `session_id` (`session_id`),
+  ADD KEY `aktywna` (`aktywna`),
+  ADD KEY `idx_sesje_aktywne` (`aktywna`,`ostatnia_aktywnosc`);
+
+--
+-- Indeksy dla tabeli `statystyki_generowania`
+--
+ALTER TABLE `statystyki_generowania`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `uzytkownik_id` (`uzytkownik_id`),
+  ADD KEY `data_generowania` (`data_generowania`),
+  ADD KEY `typ_generowania` (`typ_generowania`);
+
+--
+-- Indeksy dla tabeli `statystyki_uzytkownikow`
+--
+ALTER TABLE `statystyki_uzytkownikow`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `administrator_id` (`administrator_id`),
+  ADD KEY `uzytkownik_docelowy_id` (`uzytkownik_docelowy_id`),
+  ADD KEY `data_operacji` (`data_operacji`);
+
+--
 -- Indeksy dla tabeli `uczniowie`
 --
 ALTER TABLE `uczniowie`
@@ -500,6 +597,12 @@ ALTER TABLE `klasa_przedmioty`
 --
 ALTER TABLE `klasy`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT for table `logi_aktywnosci`
+--
+ALTER TABLE `logi_aktywnosci`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `nauczyciele`
@@ -556,16 +659,34 @@ ALTER TABLE `sale`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
+-- AUTO_INCREMENT for table `sesje_uzytkownikow`
+--
+ALTER TABLE `sesje_uzytkownikow`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `statystyki_generowania`
+--
+ALTER TABLE `statystyki_generowania`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `statystyki_uzytkownikow`
+--
+ALTER TABLE `statystyki_uzytkownikow`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `uczniowie`
 --
 ALTER TABLE `uczniowie`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=362;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=367;
 
 --
 -- AUTO_INCREMENT for table `uzytkownicy`
 --
 ALTER TABLE `uzytkownicy`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=440;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=445;
 
 --
 -- AUTO_INCREMENT for table `zastepstwa`
@@ -590,6 +711,12 @@ ALTER TABLE `klasa_przedmioty`
 --
 ALTER TABLE `klasy`
   ADD CONSTRAINT `klasy_ibfk_1` FOREIGN KEY (`wychowawca_id`) REFERENCES `nauczyciele` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `logi_aktywnosci`
+--
+ALTER TABLE `logi_aktywnosci`
+  ADD CONSTRAINT `logi_aktywnosci_ibfk_1` FOREIGN KEY (`uzytkownik_id`) REFERENCES `uzytkownicy` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `nauczyciele`
@@ -643,6 +770,25 @@ ALTER TABLE `sala_nauczyciele`
 ALTER TABLE `sala_przedmioty`
   ADD CONSTRAINT `sala_przedmioty_ibfk_1` FOREIGN KEY (`sala_id`) REFERENCES `sale` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `sala_przedmioty_ibfk_2` FOREIGN KEY (`przedmiot_id`) REFERENCES `przedmioty` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `sesje_uzytkownikow`
+--
+ALTER TABLE `sesje_uzytkownikow`
+  ADD CONSTRAINT `sesje_uzytkownikow_ibfk_1` FOREIGN KEY (`uzytkownik_id`) REFERENCES `uzytkownicy` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `statystyki_generowania`
+--
+ALTER TABLE `statystyki_generowania`
+  ADD CONSTRAINT `statystyki_generowania_ibfk_1` FOREIGN KEY (`uzytkownik_id`) REFERENCES `uzytkownicy` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `statystyki_uzytkownikow`
+--
+ALTER TABLE `statystyki_uzytkownikow`
+  ADD CONSTRAINT `statystyki_uzytkownikow_ibfk_1` FOREIGN KEY (`administrator_id`) REFERENCES `uzytkownicy` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `statystyki_uzytkownikow_ibfk_2` FOREIGN KEY (`uzytkownik_docelowy_id`) REFERENCES `uzytkownicy` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `uczniowie`
