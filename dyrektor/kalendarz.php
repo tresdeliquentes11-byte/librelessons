@@ -63,6 +63,7 @@ $dni_wolne = $conn->query("SELECT * FROM dni_wolne ORDER BY data");
                 <li><a href="sale.php">Sale</a></li>
                 <li><a href="kalendarz.php" class="active">Kalendarz</a></li>
                 <li><a href="plan_podglad.php">Podgląd Planu</a></li>
+                <li><a href="dostepnosc.php">Dostępność</a></li>
                 <li><a href="ustawienia.php">Ustawienia</a></li>
             </ul>
         </nav>
