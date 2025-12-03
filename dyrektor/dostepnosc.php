@@ -6,65 +6,69 @@ $message = '';
 $message_type = '';
 
 // Sprawdź czy tabela istnieje, jeśli nie - utwórz ją
-$check_table = $conn->query("SHOW TABLES LIKE 'nauczyciel_dostepnosc'");
+$check_table = $conn->query("SHOW TABLES LIKE 'nauczyciel_godziny_pracy'");
 if ($check_table->num_rows == 0) {
+    // Usuń starą tabelę jeśli istnieje
+    $conn->query("DROP TABLE IF EXISTS nauczyciel_dostepnosc");
+
+    // Utwórz nową tabelę
     $conn->query("
-        CREATE TABLE nauczyciel_dostepnosc (
+        CREATE TABLE nauczyciel_godziny_pracy (
             id INT PRIMARY KEY AUTO_INCREMENT,
             nauczyciel_id INT NOT NULL,
-            typ ENUM('stala', 'jednorazowa') NOT NULL,
-            dzien_tygodnia INT NULL,
-            data_konkretna DATE NULL,
+            dzien_tygodnia INT NOT NULL COMMENT '1-5',
             godzina_od TIME NOT NULL,
             godzina_do TIME NOT NULL,
-            opis TEXT NULL,
             utworzono TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            zaktualizowano TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (nauczyciel_id) REFERENCES nauczyciele(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_nauczyciel_dzien (nauczyciel_id, dzien_tygodnia),
             INDEX idx_nauczyciel (nauczyciel_id),
-            INDEX idx_dzien (dzien_tygodnia),
-            INDEX idx_data (data_konkretna)
+            INDEX idx_dzien (dzien_tygodnia)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 }
 
-// Dodawanie dostępności
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dodaj'])) {
+// Zapisywanie godzin pracy
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zapisz'])) {
     $nauczyciel_id = intval($_POST['nauczyciel_id']);
-    $typ = $_POST['typ'];
-    $godzina_od = $_POST['godzina_od'];
-    $godzina_do = $_POST['godzina_do'];
-    $opis = $_POST['opis'] ?? '';
 
-    if ($typ === 'stala') {
-        $dzien_tygodnia = intval($_POST['dzien_tygodnia']);
-        $stmt = $conn->prepare("INSERT INTO nauczyciel_dostepnosc (nauczyciel_id, typ, dzien_tygodnia, godzina_od, godzina_do, opis) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isisss", $nauczyciel_id, $typ, $dzien_tygodnia, $godzina_od, $godzina_do, $opis);
-    } else {
-        $data_konkretna = $_POST['data_konkretna'];
-        $stmt = $conn->prepare("INSERT INTO nauczyciel_dostepnosc (nauczyciel_id, typ, data_konkretna, godzina_od, godzina_do, opis) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isssss", $nauczyciel_id, $typ, $data_konkretna, $godzina_od, $godzina_do, $opis);
-    }
+    try {
+        $conn->begin_transaction();
 
-    if ($stmt->execute()) {
-        $message = 'Dostępność została dodana pomyślnie';
+        // Usuń stare godziny
+        $stmt = $conn->prepare("DELETE FROM nauczyciel_godziny_pracy WHERE nauczyciel_id = ?");
+        $stmt->bind_param("i", $nauczyciel_id);
+        $stmt->execute();
+
+        // Dodaj nowe godziny dla każdego dnia
+        for ($dzien = 1; $dzien <= 5; $dzien++) {
+            $pracuje = isset($_POST["pracuje_$dzien"]);
+
+            if ($pracuje) {
+                $godzina_od = $_POST["godzina_od_$dzien"];
+                $godzina_do = $_POST["godzina_do_$dzien"];
+
+                // Walidacja - sprawdź czy godziny są wypełnione
+                if (!empty($godzina_od) && !empty($godzina_do)) {
+                    $stmt = $conn->prepare("
+                        INSERT INTO nauczyciel_godziny_pracy (nauczyciel_id, dzien_tygodnia, godzina_od, godzina_do)
+                        VALUES (?, ?, ?, ?)
+                    ");
+                    $stmt->bind_param("iiss", $nauczyciel_id, $dzien, $godzina_od, $godzina_do);
+                    $stmt->execute();
+                }
+            }
+        }
+
+        $conn->commit();
+        $message = 'Godziny pracy zostały zapisane pomyślnie';
         $message_type = 'success';
-        loguj_aktywnosc($conn, $_SESSION['user_id'], 'dodanie', 'dostepnosc', "Dodano dostępność dla nauczyciela ID: $nauczyciel_id");
-    } else {
-        $message = 'Błąd podczas dodawania dostępności';
+        loguj_aktywnosc($conn, $_SESSION['user_id'], 'edycja', 'godziny_pracy', "Zaktualizowano godziny pracy nauczyciela ID: $nauczyciel_id");
+    } catch (Exception $e) {
+        $conn->rollback();
+        $message = 'Błąd podczas zapisywania: ' . $e->getMessage();
         $message_type = 'error';
-    }
-}
-
-// Usuwanie dostępności
-if (isset($_GET['usun'])) {
-    $id = intval($_GET['usun']);
-    $stmt = $conn->prepare("DELETE FROM nauczyciel_dostepnosc WHERE id = ?");
-    $stmt->bind_param("i", $id);
-
-    if ($stmt->execute()) {
-        $message = 'Dostępność została usunięta';
-        $message_type = 'success';
-        loguj_aktywnosc($conn, $_SESSION['user_id'], 'usuniecie', 'dostepnosc', "Usunięto dostępność ID: $id");
     }
 }
 
@@ -79,19 +83,24 @@ $nauczyciele = $conn->query("
     ORDER BY u.nazwisko, u.imie
 ");
 
-// Pobierz dostępności dla wybranego nauczyciela
-$dostepnosci = null;
+// Pobierz godziny pracy dla wybranego nauczyciela
+$godziny_pracy = [];
 if ($wybrany_nauczyciel) {
-    $dostepnosci = $conn->query("
-        SELECT nd.*
-        FROM nauczyciel_dostepnosc nd
-        WHERE nd.nauczyciel_id = $wybrany_nauczyciel
-        ORDER BY
-            CASE WHEN nd.typ = 'stala' THEN 0 ELSE 1 END,
-            nd.dzien_tygodnia,
-            nd.data_konkretna,
-            nd.godzina_od
+    $stmt = $conn->prepare("
+        SELECT dzien_tygodnia, godzina_od, godzina_do
+        FROM nauczyciel_godziny_pracy
+        WHERE nauczyciel_id = ?
     ");
+    $stmt->bind_param("i", $wybrany_nauczyciel);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $godziny_pracy[$row['dzien_tygodnia']] = [
+            'od' => substr($row['godzina_od'], 0, 5),
+            'do' => substr($row['godzina_do'], 0, 5)
+        ];
+    }
 }
 
 $dni_tygodnia = [
@@ -107,52 +116,78 @@ $dni_tygodnia = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dostępność Nauczycieli - Panel Dyrektora</title>
+    <title>Godziny Pracy Nauczycieli - Panel Dyrektora</title>
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .full-width {
-            grid-column: 1 / -1;
-        }
-        .availability-table {
+        .hours-table {
+            width: 100%;
             margin-top: 20px;
         }
-        .availability-type {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
+        .hours-table th {
+            background-color: #f8f9fa;
+            padding: 12px;
+            text-align: left;
         }
-        .type-stala {
-            background-color: #d4edda;
-            color: #155724;
+        .hours-table td {
+            padding: 10px;
+            vertical-align: middle;
         }
-        .type-jednorazowa {
-            background-color: #fff3cd;
-            color: #856404;
+        .hours-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .hours-inputs input[type="time"] {
+            padding: 6px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .hours-inputs input[type="time"]:disabled {
+            background-color: #f8f9fa;
+            color: #6c757d;
+        }
+        .checkbox-cell {
+            width: 100px;
+            text-align: center;
+        }
+        .day-name {
+            font-weight: 500;
+            width: 150px;
         }
     </style>
     <script>
-        function zmienTyp() {
-            const typ = document.getElementById('typ').value;
-            const stalaDiv = document.getElementById('stala-options');
-            const jednorazowaDiv = document.getElementById('jednorazowa-options');
+        function toggleDay(dzien) {
+            const checkbox = document.getElementById('pracuje_' + dzien);
+            const odInput = document.getElementById('godzina_od_' + dzien);
+            const doInput = document.getElementById('godzina_do_' + dzien);
 
-            if (typ === 'stala') {
-                stalaDiv.style.display = 'block';
-                jednorazowaDiv.style.display = 'none';
-                document.getElementById('dzien_tygodnia').required = true;
-                document.getElementById('data_konkretna').required = false;
+            if (checkbox.checked) {
+                odInput.disabled = false;
+                doInput.disabled = false;
+                if (!odInput.value) odInput.value = '08:00';
+                if (!doInput.value) doInput.value = '16:00';
             } else {
-                stalaDiv.style.display = 'none';
-                jednorazowaDiv.style.display = 'block';
-                document.getElementById('dzien_tygodnia').required = false;
-                document.getElementById('data_konkretna').required = true;
+                odInput.disabled = true;
+                doInput.disabled = true;
+            }
+        }
+
+        function zaznaczWszystkie() {
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById('pracuje_' + i);
+                if (!checkbox.checked) {
+                    checkbox.checked = true;
+                    toggleDay(i);
+                }
+            }
+        }
+
+        function odznaczWszystkie() {
+            for (let i = 1; i <= 5; i++) {
+                const checkbox = document.getElementById('pracuje_' + i);
+                checkbox.checked = false;
+                toggleDay(i);
             }
         }
     </script>
@@ -185,7 +220,7 @@ $dni_tygodnia = [
         </nav>
 
         <div class="content">
-            <h2 class="page-title">Zarządzanie Dostępnością Nauczycieli</h2>
+            <h2 class="page-title">Godziny Pracy Nauczycieli</h2>
 
             <?php if ($message): ?>
                 <div class="alert alert-<?php echo $message_type; ?>"><?php echo e($message); ?></div>
@@ -196,7 +231,7 @@ $dni_tygodnia = [
                 <form method="GET">
                     <div class="form-group">
                         <label for="nauczyciel">Nauczyciel</label>
-                        <select id="nauczyciel" name="nauczyciel" onchange="this.form.submit()">
+                        <select id="nauczyciel" name="nauczyciel" onchange="this.form.submit()" style="width: 100%; max-width: 400px;">
                             <option value="">-- Wybierz nauczyciela --</option>
                             <?php while ($n = $nauczyciele->fetch_assoc()): ?>
                                 <option value="<?php echo $n['id']; ?>" <?php echo ($wybrany_nauczyciel == $n['id']) ? 'selected' : ''; ?>>
@@ -210,125 +245,80 @@ $dni_tygodnia = [
 
             <?php if ($wybrany_nauczyciel): ?>
                 <div class="card">
-                    <h3 class="card-title">Dodaj Dostępność / Niedostępność</h3>
+                    <h3 class="card-title">Godziny Pracy</h3>
 
                     <div class="alert alert-info">
-                        <strong>Informacja:</strong><br>
-                        • <strong>Stała dostępność</strong> - regularne godziny pracy w danym dniu tygodnia (np. każdy poniedziałek 8:00-16:00)<br>
-                        • <strong>Jednorazowa niedostępność</strong> - wyjątek w konkretnym dniu (np. wizyta lekarska, szkolenie)
+                        <strong>Informacja:</strong> Zaznacz dni, w które nauczyciel pracuje i ustaw godziny pracy.
+                        Jeśli dzień nie jest zaznaczony, nauczyciel będzie niedostępny i nie będzie mógł prowadzić lekcji tego dnia.
                     </div>
 
                     <form method="POST">
                         <input type="hidden" name="nauczyciel_id" value="<?php echo $wybrany_nauczyciel; ?>">
 
-                        <div class="form-grid">
-                            <div class="full-width">
-                                <div class="form-group">
-                                    <label for="typ">Typ</label>
-                                    <select id="typ" name="typ" required onchange="zmienTyp()">
-                                        <option value="stala">Stała dostępność</option>
-                                        <option value="jednorazowa">Jednorazowa niedostępność</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div id="stala-options" style="display: block; grid-column: 1 / -1;">
-                                <div class="form-group">
-                                    <label for="dzien_tygodnia">Dzień tygodnia</label>
-                                    <select id="dzien_tygodnia" name="dzien_tygodnia" required>
-                                        <?php foreach ($dni_tygodnia as $nr => $nazwa): ?>
-                                            <option value="<?php echo $nr; ?>"><?php echo $nazwa; ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div id="jednorazowa-options" style="display: none; grid-column: 1 / -1;">
-                                <div class="form-group">
-                                    <label for="data_konkretna">Data</label>
-                                    <input type="date" id="data_konkretna" name="data_konkretna">
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="form-group">
-                                    <label for="godzina_od">Godzina od</label>
-                                    <input type="time" id="godzina_od" name="godzina_od" value="08:00" required>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="form-group">
-                                    <label for="godzina_do">Godzina do</label>
-                                    <input type="time" id="godzina_do" name="godzina_do" value="16:00" required>
-                                </div>
-                            </div>
-
-                            <div class="full-width">
-                                <div class="form-group">
-                                    <label for="opis">Opis (opcjonalnie)</label>
-                                    <input type="text" id="opis" name="opis" placeholder="np. wizyta lekarska, szkolenie">
-                                </div>
-                            </div>
+                        <div style="margin-bottom: 15px;">
+                            <button type="button" onclick="zaznaczWszystkie()" class="btn btn-secondary" style="margin-right: 10px;">
+                                Zaznacz wszystkie
+                            </button>
+                            <button type="button" onclick="odznaczWszystkie()" class="btn btn-secondary">
+                                Odznacz wszystkie
+                            </button>
                         </div>
 
-                        <button type="submit" name="dodaj" class="btn btn-primary">Dodaj</button>
-                    </form>
-                </div>
-
-                <div class="card">
-                    <h3 class="card-title">Aktualna Dostępność</h3>
-
-                    <?php if ($dostepnosci && $dostepnosci->num_rows > 0): ?>
-                        <table>
+                        <table class="hours-table">
                             <thead>
                                 <tr>
-                                    <th>Typ</th>
-                                    <th>Dzień / Data</th>
+                                    <th class="checkbox-cell">Pracuje</th>
+                                    <th class="day-name">Dzień tygodnia</th>
                                     <th>Godzina od</th>
                                     <th>Godzina do</th>
-                                    <th>Opis</th>
-                                    <th>Akcje</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php while ($d = $dostepnosci->fetch_assoc()): ?>
+                                <?php foreach ($dni_tygodnia as $nr => $nazwa): ?>
+                                    <?php
+                                    $pracuje = isset($godziny_pracy[$nr]);
+                                    $godzina_od = $pracuje ? $godziny_pracy[$nr]['od'] : '08:00';
+                                    $godzina_do = $pracuje ? $godziny_pracy[$nr]['do'] : '16:00';
+                                    ?>
                                     <tr>
-                                        <td>
-                                            <span class="availability-type type-<?php echo $d['typ']; ?>">
-                                                <?php echo $d['typ'] === 'stala' ? 'Stała' : 'Jednorazowa'; ?>
-                                            </span>
+                                        <td class="checkbox-cell">
+                                            <input type="checkbox"
+                                                   id="pracuje_<?php echo $nr; ?>"
+                                                   name="pracuje_<?php echo $nr; ?>"
+                                                   onchange="toggleDay(<?php echo $nr; ?>)"
+                                                   <?php echo $pracuje ? 'checked' : ''; ?>>
+                                        </td>
+                                        <td class="day-name">
+                                            <label for="pracuje_<?php echo $nr; ?>" style="cursor: pointer; margin: 0;">
+                                                <?php echo $nazwa; ?>
+                                            </label>
                                         </td>
                                         <td>
-                                            <?php
-                                            if ($d['typ'] === 'stala') {
-                                                echo $dni_tygodnia[$d['dzien_tygodnia']];
-                                            } else {
-                                                echo formatuj_date($d['data_konkretna']);
-                                            }
-                                            ?>
+                                            <input type="time"
+                                                   id="godzina_od_<?php echo $nr; ?>"
+                                                   name="godzina_od_<?php echo $nr; ?>"
+                                                   value="<?php echo $godzina_od; ?>"
+                                                   <?php echo !$pracuje ? 'disabled' : ''; ?>>
                                         </td>
-                                        <td><?php echo substr($d['godzina_od'], 0, 5); ?></td>
-                                        <td><?php echo substr($d['godzina_do'], 0, 5); ?></td>
-                                        <td><?php echo e($d['opis'] ?: '-'); ?></td>
                                         <td>
-                                            <a href="?nauczyciel=<?php echo $wybrany_nauczyciel; ?>&usun=<?php echo $d['id']; ?>"
-                                               class="btn btn-danger"
-                                               style="padding: 5px 10px; font-size: 12px;"
-                                               onclick="return confirm('Czy na pewno chcesz usunąć ten wpis?')">
-                                                Usuń
-                                            </a>
+                                            <input type="time"
+                                                   id="godzina_do_<?php echo $nr; ?>"
+                                                   name="godzina_do_<?php echo $nr; ?>"
+                                                   value="<?php echo $godzina_do; ?>"
+                                                   <?php echo !$pracuje ? 'disabled' : ''; ?>>
                                         </td>
                                     </tr>
-                                <?php endwhile; ?>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
-                    <?php else: ?>
-                        <div class="alert alert-info">Brak ustawionych godzin dostępności dla tego nauczyciela</div>
-                    <?php endif; ?>
+
+                        <div style="margin-top: 20px;">
+                            <button type="submit" name="zapisz" class="btn btn-primary">Zapisz godziny pracy</button>
+                        </div>
+                    </form>
                 </div>
             <?php else: ?>
-                <div class="alert alert-info">Wybierz nauczyciela z listy powyżej</div>
+                <div class="alert alert-info">Wybierz nauczyciela z listy powyżej, aby ustawić godziny pracy</div>
             <?php endif; ?>
         </div>
     </div>

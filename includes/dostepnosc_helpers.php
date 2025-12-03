@@ -1,6 +1,6 @@
 <?php
 /**
- * Funkcje pomocnicze do sprawdzania dostępności nauczycieli
+ * Funkcje pomocnicze do sprawdzania godzin pracy nauczycieli
  */
 
 /**
@@ -96,27 +96,25 @@ function pobierz_ustawienia_czasu($conn) {
 }
 
 /**
- * Sprawdza czy nauczyciel jest dostępny w danym czasie
+ * Sprawdza czy nauczyciel jest dostępny (ma godziny pracy) w danym czasie
+ *
+ * NOWA LOGIKA: Jeśli nauczyciel NIE ma ustawionych godzin pracy = jest NIEDOSTĘPNY
  *
  * @param int $nauczyciel_id ID nauczyciela
- * @param string $dzien_tygodnia Nazwa dnia ('poniedzialek', 'wtorek', etc.) lub NULL dla konkretnej daty
- * @param string $data Data w formacie YYYY-MM-DD (opcjonalnie)
+ * @param string $dzien_tygodnia Nazwa dnia ('poniedzialek', 'wtorek', etc.)
+ * @param string $data Data w formacie YYYY-MM-DD (opcjonalnie, nie używane w nowym modelu)
  * @param int $numer_lekcji Numer lekcji
  * @param mysqli $conn Połączenie z bazą danych
  * @return bool True jeśli nauczyciel jest dostępny
  */
 function sprawdz_dostepnosc_nauczyciela_w_czasie($nauczyciel_id, $dzien_tygodnia, $data, $numer_lekcji, $conn) {
-    // Sprawdź czy tabela dostępności istnieje
-    $check_table = $conn->query("SHOW TABLES LIKE 'nauczyciel_dostepnosc'");
+    // Sprawdź czy tabela godzin pracy istnieje
+    $check_table = $conn->query("SHOW TABLES LIKE 'nauczyciel_godziny_pracy'");
     if ($check_table->num_rows == 0) {
-        // Jeśli tabeli nie ma, zakładamy że wszyscy są dostępni
-        return true;
+        // Jeśli tabeli nie ma, zakładamy że wszyscy są niedostępni
+        // (wymaga konfiguracji godzin pracy)
+        return false;
     }
-
-    // Oblicz rzeczywisty czas lekcji
-    $czas_lekcji = oblicz_czas_lekcji($numer_lekcji, $conn);
-    $lekcja_start = $czas_lekcji['start'];
-    $lekcja_koniec = $czas_lekcji['koniec'];
 
     // Mapowanie nazwy dnia na numer
     $dni_mapping = [
@@ -128,69 +126,45 @@ function sprawdz_dostepnosc_nauczyciela_w_czasie($nauczyciel_id, $dzien_tygodnia
     ];
     $dzien_nr = isset($dni_mapping[$dzien_tygodnia]) ? $dni_mapping[$dzien_tygodnia] : null;
 
-    // KROK 1: Sprawdź jednorazowe niedostępności (mają priorytet)
-    if ($data) {
-        $stmt = $conn->prepare("
-            SELECT COUNT(*) as cnt
-            FROM nauczyciel_dostepnosc
-            WHERE nauczyciel_id = ?
-            AND typ = 'jednorazowa'
-            AND data_konkretna = ?
-            AND NOT (
-                godzina_do <= ? OR godzina_od >= ?
-            )
-        ");
-        $stmt->bind_param("isss", $nauczyciel_id, $data, $lekcja_start, $lekcja_koniec);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-
-        // Jeśli znaleziono niedostępność jednorazową w tym czasie - nauczyciel NIE jest dostępny
-        if ($result['cnt'] > 0) {
-            return false;
-        }
+    if (!$dzien_nr) {
+        return false; // Nieprawidłowy dzień tygodnia
     }
 
-    // KROK 2: Sprawdź stałą dostępność
-    if ($dzien_nr) {
-        $stmt = $conn->prepare("
-            SELECT COUNT(*) as cnt
-            FROM nauczyciel_dostepnosc
-            WHERE nauczyciel_id = ?
-            AND typ = 'stala'
-            AND dzien_tygodnia = ?
-            AND godzina_od <= ?
-            AND godzina_do >= ?
-        ");
-        $stmt->bind_param("iiss", $nauczyciel_id, $dzien_nr, $lekcja_start, $lekcja_koniec);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
+    // Oblicz rzeczywisty czas lekcji
+    $czas_lekcji = oblicz_czas_lekcji($numer_lekcji, $conn);
+    $lekcja_start = $czas_lekcji['start'];
+    $lekcja_koniec = $czas_lekcji['koniec'];
 
-        // Jeśli znaleziono rekord stałej dostępności pokrywający czas lekcji - nauczyciel JEST dostępny
-        if ($result['cnt'] > 0) {
-            return true;
-        }
+    // Sprawdź czy nauczyciel ma godziny pracy dla tego dnia
+    $stmt = $conn->prepare("
+        SELECT godzina_od, godzina_do
+        FROM nauczyciel_godziny_pracy
+        WHERE nauczyciel_id = ?
+        AND dzien_tygodnia = ?
+    ");
+    $stmt->bind_param("ii", $nauczyciel_id, $dzien_nr);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-        // Jeśli nauczyciel ma jakąkolwiek stałą dostępność dla tego dnia, ale nie pokrywa czasu lekcji
-        $stmt = $conn->prepare("
-            SELECT COUNT(*) as cnt
-            FROM nauczyciel_dostepnosc
-            WHERE nauczyciel_id = ?
-            AND typ = 'stala'
-            AND dzien_tygodnia = ?
-        ");
-        $stmt->bind_param("ii", $nauczyciel_id, $dzien_nr);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-
-        // Jeśli ma jakieś ustawienia dla tego dnia ale nie pokrywają lekcji - niedostępny
-        if ($result['cnt'] > 0) {
-            return false;
-        }
+    if ($result->num_rows == 0) {
+        // Nauczyciel NIE ma ustawionych godzin pracy dla tego dnia
+        // = jest NIEDOSTĘPNY
+        return false;
     }
 
-    // Jeśli nie ma żadnych ustawień dostępności - zakładamy że jest dostępny
-    // (backward compatibility - dla nauczycieli bez ustawionych godzin)
-    return true;
+    $godziny = $result->fetch_assoc();
+    $praca_od = $godziny['godzina_od'];
+    $praca_do = $godziny['godzina_do'];
+
+    // Sprawdź czy lekcja mieści się w godzinach pracy
+    // Lekcja musi zaczynać się nie wcześniej niż godzina_od
+    // i kończyć się nie później niż godzina_do
+    if ($lekcja_start >= $praca_od && $lekcja_koniec <= $praca_do) {
+        return true; // Nauczyciel jest dostępny
+    }
+
+    // Lekcja wykracza poza godziny pracy
+    return false;
 }
 
 ?>
