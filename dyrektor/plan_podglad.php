@@ -2,6 +2,26 @@
 require_once '../includes/config.php';
 sprawdz_uprawnienia('dyrektor');
 
+// Funkcja do pobierania ustawienia
+function pobierz_ustawienie($nazwa, $domyslna = '') {
+    global $conn;
+    $stmt = $conn->prepare("SELECT wartosc FROM ustawienia_planu WHERE nazwa = ?");
+    $stmt->bind_param("s", $nazwa);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        return $row['wartosc'];
+    }
+    return $domyslna;
+}
+
+// Pobierz ustawienia
+$dlugosc_lekcji = intval(pobierz_ustawienie('dlugosc_lekcji', '45'));
+$godzina_rozpoczecia = pobierz_ustawienie('godzina_rozpoczecia', '08:00');
+$przerwa_krotka = intval(pobierz_ustawienie('przerwa_krotka', '10'));
+$przerwa_dluga = intval(pobierz_ustawienie('przerwa_dluga', '15'));
+$przerwa_dluga_po_lekcji = intval(pobierz_ustawienie('przerwa_dluga_po_lekcji', '3'));
+
 // Pobierz wybraną klasę i tydzień
 $klasa_id = $_GET['klasa_id'] ?? null;
 $tydzien_offset = $_GET['tydzien'] ?? 0;
@@ -79,6 +99,7 @@ $dni_tygodnia = [
                 <li><a href="sale.php">Sale</a></li>
                 <li><a href="kalendarz.php">Kalendarz</a></li>
                 <li><a href="plan_podglad.php" class="active">Podgląd Planu</a></li>
+                <li><a href="ustawienia.php">Ustawienia</a></li>
             </ul>
         </nav>
         
@@ -123,8 +144,22 @@ $dni_tygodnia = [
                         <tbody>
                             <?php for ($lekcja_nr = 1; $lekcja_nr <= 8; $lekcja_nr++): ?>
                                 <?php
-                                $start_time = strtotime('08:00') + (($lekcja_nr - 1) * 55 * 60);
-                                $end_time = $start_time + (45 * 60);
+                                // Oblicz czas rozpoczęcia lekcji na podstawie ustawień
+                                $start_time = strtotime($godzina_rozpoczecia);
+
+                                // Dodaj czas poprzednich lekcji i przerw
+                                for ($i = 1; $i < $lekcja_nr; $i++) {
+                                    $start_time += $dlugosc_lekcji * 60; // Dodaj długość lekcji
+
+                                    // Dodaj odpowiednią przerwę
+                                    if ($i == $przerwa_dluga_po_lekcji) {
+                                        $start_time += $przerwa_dluga * 60;
+                                    } else {
+                                        $start_time += $przerwa_krotka * 60;
+                                    }
+                                }
+
+                                $end_time = $start_time + ($dlugosc_lekcji * 60);
                                 ?>
                                 <tr>
                                     <td class="time-cell">

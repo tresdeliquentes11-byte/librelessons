@@ -110,6 +110,7 @@ if (isset($_GET['klasa_id'])) {
                 <li><a href="sale.php">Sale</a></li>
                 <li><a href="kalendarz.php">Kalendarz</a></li>
                 <li><a href="plan_podglad.php">Podgląd Planu</a></li>
+                <li><a href="ustawienia.php">Ustawienia</a></li>
             </ul>
         </nav>
         
