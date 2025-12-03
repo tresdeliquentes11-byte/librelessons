@@ -83,7 +83,7 @@ $dni_tygodnia = [
     <style>
         .teacher-layout {
             min-height: 100vh;
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
         }
 
@@ -113,7 +113,7 @@ $dni_tygodnia = [
         }
 
         .teacher-badge {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 8px 20px;
             border-radius: 25px;
@@ -166,7 +166,7 @@ $dni_tygodnia = [
         .stat-item .number {
             font-size: 32px;
             font-weight: 700;
-            color: #fa709a;
+            color: #667eea;
         }
 
         .stat-item .label {
@@ -192,7 +192,7 @@ $dni_tygodnia = [
         }
 
         .week-navigation button {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -205,7 +205,7 @@ $dni_tygodnia = [
 
         .week-navigation button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(250, 112, 154, 0.4);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
         .current-week {
@@ -225,7 +225,7 @@ $dni_tygodnia = [
         }
 
         .timetable th {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 15px;
             text-align: center;
@@ -282,7 +282,7 @@ $dni_tygodnia = [
 
         .lesson-card {
             background: white;
-            border-left: 4px solid #fa709a;
+            border-left: 4px solid #667eea;
             border-radius: 8px;
             padding: 12px;
             min-height: 75px;
@@ -309,7 +309,7 @@ $dni_tygodnia = [
 
         .lesson-class {
             font-size: 13px;
-            color: #fa709a;
+            color: #667eea;
             font-weight: 600;
             margin-bottom: 4px;
         }
