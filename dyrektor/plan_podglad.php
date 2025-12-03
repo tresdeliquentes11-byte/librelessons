@@ -5,6 +5,13 @@ sprawdz_uprawnienia('dyrektor');
 // Funkcja do pobierania ustawienia
 function pobierz_ustawienie($nazwa, $domyslna = '') {
     global $conn;
+
+    // Sprawdź czy tabela istnieje
+    $check_table = $conn->query("SHOW TABLES LIKE 'ustawienia_planu'");
+    if ($check_table->num_rows == 0) {
+        return $domyslna; // Zwróć wartość domyślną jeśli tabela nie istnieje
+    }
+
     $stmt = $conn->prepare("SELECT wartosc FROM ustawienia_planu WHERE nazwa = ?");
     $stmt->bind_param("s", $nazwa);
     $stmt->execute();
