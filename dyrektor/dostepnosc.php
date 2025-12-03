@@ -52,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zapisz'])) {
 
                 // Walidacja - sprawdź czy godziny są wypełnione
                 if (!empty($godzina_od) && !empty($godzina_do)) {
+                    // Walidacja - sprawdź czy godzina rozpoczęcia jest wcześniejsza niż zakończenia
+                    if ($godzina_od >= $godzina_do) {
+                        throw new Exception("Godzina rozpoczęcia musi być wcześniejsza niż godzina zakończenia (dzień: " . $dni_tygodnia[$dzien] . ")");
+                    }
+
                     $stmt = $conn->prepare("
                         INSERT INTO nauczyciel_godziny_pracy (nauczyciel_id, dzien_tygodnia, godzina_od, godzina_do)
                         VALUES (?, ?, ?, ?)
@@ -265,6 +270,43 @@ $dni_tygodnia = [
                 toggleDay(i);
             }
         }
+
+        function walidujFormularz() {
+            const dniNazwy = {
+                1: 'Poniedziałek',
+                2: 'Wtorek',
+                3: 'Środa',
+                4: 'Czwartek',
+                5: 'Piątek'
+            };
+
+            for (let dzien = 1; dzien <= 5; dzien++) {
+                const checkbox = document.getElementById('pracuje_' + dzien);
+
+                if (checkbox.checked) {
+                    const odInput = document.getElementById('godzina_od_' + dzien);
+                    const doInput = document.getElementById('godzina_do_' + dzien);
+                    const od = odInput.value;
+                    const do_val = doInput.value;
+
+                    // Sprawdź czy pola są wypełnione
+                    if (!od || !do_val) {
+                        alert('Proszę wypełnić godziny dla dnia: ' + dniNazwy[dzien]);
+                        odInput.focus();
+                        return false;
+                    }
+
+                    // Sprawdź czy godzina rozpoczęcia jest wcześniejsza niż zakończenia
+                    if (od >= do_val) {
+                        alert('Godzina rozpoczęcia musi być wcześniejsza niż godzina zakończenia!\nDzień: ' + dniNazwy[dzien] + '\nOd: ' + od + ', Do: ' + do_val);
+                        odInput.focus();
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
     </script>
 </head>
 <body>
@@ -370,7 +412,7 @@ $dni_tygodnia = [
                         Jeśli dzień nie jest zaznaczony, nauczyciel będzie niedostępny i nie będzie mógł prowadzić lekcji tego dnia.
                     </div>
 
-                    <form method="POST">
+                    <form method="POST" onsubmit="return walidujFormularz()">
                         <input type="hidden" name="nauczyciel_id" value="<?php echo $wybrany_nauczyciel; ?>">
 
                         <div style="margin-bottom: 15px;">
