@@ -72,7 +72,7 @@ $stats['przedmioty_przypisane'] = $conn->query("SELECT COUNT(*) as count FROM kl
             <h2 class="page-title">Generowanie Planu Lekcji</h2>
             
             <?php if ($message): ?>
-                <div class="alert alert-<?php echo $message_type; ?>"><?php echo e($message); ?></div>
+                <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
             <?php endif; ?>
             
             <div class="card">
