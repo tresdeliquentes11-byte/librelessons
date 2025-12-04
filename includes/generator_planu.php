@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/dostepnosc_helpers.php';
+require_once '../includes/admin_functions.php';
 
 class GeneratorPlanu {
     private $conn;
@@ -916,6 +917,14 @@ class GeneratorPlanu {
         // KROK 1: Walidacja
         $walidacja = $this->walidujDane();
         if (!$walidacja['success']) {
+            // Loguj nieudaną próbę generowania
+            loguj_aktywnosc(
+                $uzytkownik_id,
+                'generowanie_planu_blad',
+                'Nieudana próba generowania planu - błędy walidacji: ' . count($walidacja['errors']),
+                ['errors' => $walidacja['errors']]
+            );
+
             return [
                 'success' => false,
                 'errors' => $walidacja['errors'],
@@ -934,6 +943,32 @@ class GeneratorPlanu {
 
         // KROK 6: Zapis
         $wynik_zapisu = $this->zapiszDoBazy($uzytkownik_id);
+
+        // Loguj wynik generowania
+        if ($wynik_zapisu['success']) {
+            $status_opis = $wynik_zapisu['unassigned'] > 0
+                ? "z ostrzeżeniami ({$wynik_zapisu['unassigned']} nieprzypisanych slotów)"
+                : "pełny sukces";
+
+            loguj_aktywnosc(
+                $uzytkownik_id,
+                'generowanie_planu_sukces',
+                "Wygenerowano plan lekcji - {$status_opis}",
+                [
+                    'ilosc_lekcji' => $wynik_zapisu['ilosc_lekcji'],
+                    'czas_trwania' => $wynik_zapisu['czas_trwania'],
+                    'unassigned' => $wynik_zapisu['unassigned'],
+                    'repaired' => $repaired
+                ]
+            );
+        } else {
+            loguj_aktywnosc(
+                $uzytkownik_id,
+                'generowanie_planu_blad',
+                'Błąd podczas generowania planu: ' . ($wynik_zapisu['error'] ?? 'Nieznany błąd'),
+                ['error' => $wynik_zapisu['error'] ?? 'Nieznany błąd']
+            );
+        }
 
         return array_merge($wynik_zapisu, [
             'repaired_slots' => $repaired,
