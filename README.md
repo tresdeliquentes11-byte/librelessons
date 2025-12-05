@@ -100,9 +100,7 @@ sudo apt update && sudo apt upgrade -y
 ```bash
 
 sudo apt install apache2 -y
-
 sudo systemctl enable apache2
-
 sudo systemctl start apache2
 
 ```
@@ -116,9 +114,7 @@ sudo systemctl start apache2
 ```bash
 
 sudo apt install mysql-server -y
-
 sudo systemctl enable mysql
-
 sudo systemctl start mysql
 
 ```
