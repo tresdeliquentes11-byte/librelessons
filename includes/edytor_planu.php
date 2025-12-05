@@ -62,6 +62,8 @@ class EdytorPlanu {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
             ");
 
+            $sala_id = $dane['sala_id'] ?: null;
+
             $stmt->bind_param(
                 "isisssii",
                 $dane['klasa_id'],
@@ -71,7 +73,7 @@ class EdytorPlanu {
                 $czas['koniec'],
                 $dane['przedmiot_id'],
                 $dane['nauczyciel_id'],
-                $dane['sala_id']
+                $sala_id
             );
 
             if (!$stmt->execute()) {
@@ -98,7 +100,7 @@ class EdytorPlanu {
                 $czas['koniec'],
                 $dane['przedmiot_id'],
                 $dane['nauczyciel_id'],
-                $dane['sala_id'],
+                $sala_id,
                 $uzytkownik_id
             );
 
@@ -191,6 +193,8 @@ class EdytorPlanu {
         $this->conn->begin_transaction();
 
         try {
+            $sala_id = $nowe_dane['sala_id'] ?: null;
+
             // Aktualizuj plan_dzienny
             $stmt = $this->conn->prepare("
                 UPDATE plan_dzienny
@@ -206,7 +210,7 @@ class EdytorPlanu {
                 "iiiii",
                 $nowe_dane['przedmiot_id'],
                 $nowe_dane['nauczyciel_id'],
-                $nowe_dane['sala_id'],
+                $sala_id,
                 $uzytkownik_id,
                 $plan_dzienny_id
             );
@@ -228,7 +232,7 @@ class EdytorPlanu {
                 "iiii",
                 $nowe_dane['przedmiot_id'],
                 $nowe_dane['nauczyciel_id'],
-                $nowe_dane['sala_id'],
+                $sala_id,
                 $obecny_stan['plan_lekcji_id']
             );
 
