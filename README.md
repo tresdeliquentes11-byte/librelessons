@@ -1,300 +1,595 @@
 # LibreLessons - Dokumentacja
 
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/65409344-404c-41d5-a77d-fd3964a14d41" />
+ 
 
-## Opis
+## Co to jest LibreLessons?
 
-Kompleksowy system zarządzania planem lekcji dla szkół, napisany w PHP z wykorzystaniem bazy danych MySQL. System umożliwia:
+ 
+
+**LibreLessons** to otwarty system zarządzania planem lekcji dla szkół, napisany w PHP z wykorzystaniem bazy danych MySQL/MariaDB. System umożliwia kompleksowe zarządzanie organizacją zajęć szkolnych.
+
+ 
+
+### Główne funkcje:
 
 - Automatyczne generowanie planu lekcji dla wszystkich klas
+
 - Zarządzanie zastępstwami za nieobecnych nauczycieli
+
 - Przeglądanie planu przez uczniów, nauczycieli i dyrekcję
+
 - Zarządzanie kalendarzem dni wolnych
+
 - Przypisywanie nauczycieli do przedmiotów i klas
-- Zarządzanie rozszerzeniami dla poszczególnych klas
+
 - Zarządzanie salami lekcyjnymi
 
-## Wymagania systemowe
+ 
 
-- PHP 8.2 lub nowszy
-- MySQL 9.5 lub nowszy / MariaDB 12.0 lub nowszy
-- Serwer web (Apache/Nginx)
-- Włączone rozszerzenia PHP: mysqli, session
+### Link do repozytorium:
 
-## Instalacja
+[https://github.com/tresdeliquentes11-byte/plan-lekcji](https://github.com/tresdeliquentes11-byte/plan-lekcji)
 
-### 1. Przygotowanie bazy danych
-
-```bash
-# Zaloguj się do MySQL
-mysql -u root -p
-
-# Utwórz bazę danych (lub użyj importu pliku SQL)
-source database.sql
-```
-
-Alternatywnie możesz zaimportować plik `database.sql` przez phpMyAdmin.
-
-### 2. Konfiguracja połączenia z bazą danych
-
-Edytuj plik `includes/config.php` i dostosuj parametry połączenia:
-
-```php
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', 'twoje_haslo');
-define('DB_NAME', 'plan_lekcji');
-```
-
-### 3. Uprawnienia do plików
-
-Upewnij się, że katalog aplikacji ma odpowiednie uprawnienia:
-
-```bash
-chmod -R 755 /sciezka/do/aplikacji
-```
-
-### 4. Konfiguracja serwera web
-
-#### Apache
-
-Upewnij się, że mod_rewrite jest włączony i katalog główny wskazuje na folder aplikacji.
-
-#### Nginx
-
-Przykładowa konfiguracja:
-
-```nginx
-server {
-    listen 80;
-    server_name twoja-domena.pl;
-    root /sciezka/do/aplikacji;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
-        fastcgi_index index.php;
-        include fastcgi_params;
-    }
-}
-```
-
-## Domyślne konta użytkowników
-
-Po instalacji dostępne są następujące konta testowe:
-
-- **Dyrektor**: login: `dyrektor`, hasło: `dyrektor123`
-- **Administrator**: login: `admin`, hasło: `admin123`
-
-**WAŻNE**: Zmień te hasła natychmiast po pierwszym logowaniu!
-
-## Struktura systemu
-
-### Typy użytkowników
-
-1. **Dyrektor** - pełen dostęp do systemu:
-   - Generowanie planu lekcji
-   - Zarządzanie zastępstwami
-   - Zarządzanie nauczycielami i klasami
-   - Zarządzanie kalendarzem dni wolnych
-   - Podgląd wszystkich planów
-
-2. **Administrator** - zarządzanie kontami:
-   - Dodawanie i usuwanie kont uczniów
-   - Przypisywanie uczniów do klas
-
-3. **Nauczyciel** - dostęp do odczytu:
-   - Przeglądanie własnego planu lekcji
-   - Widok tygodniowy z możliwością nawigacji
-
-4. **Uczeń** - dostęp do odczytu:
-   - Przeglądanie planu swojej klasy
-   - Widok tygodniowy z możliwością nawigacji
-
-### Główne funkcjonalności
-
-#### Generowanie planu lekcji
-
-System automatycznie generuje plan według algorytmu, który:
-
-1. Równomiernie rozkłada przedmioty w ciągu tygodnia
-2. Unika nakładania się sal (jedna sala = jedna klasa w danym czasie)
-3. Eliminuje okienka - lekcje bez przerw
-4. Sprawdza dostępność nauczycieli (jeden nauczyciel może uczyć tylko jedną klasę w danym czasie)
-5. Generuje plan na cały rok szkolny (wrzesień - czerwiec)
-6. Uwzględnia dni wolne z kalendarza
-
-**Jak wygenerować plan:**
-
-1. Zaloguj się jako dyrektor
-2. Przejdź do sekcji "Klasy" i przypisz przedmioty oraz nauczycieli do każdej klasy
-3. Wybierz 2 rozszerzenia dla każdej klasy
-4. Przejdź do "Generuj Plan"
-5. Kliknij "Wygeneruj plan lekcji"
-
-#### Automatyczne zastępstwa
-
-System automatycznie tworzy zastępstwa gdy:
-
-1. Dyrektor wprowadzi nieobecność nauczyciela
-2. System znajduje wolnych nauczycieli z odpowiednimi kwalifikacjami
-3. Automatycznie przydziela zastępstwa
-4. Oznacza lekcje jako zastępstwa w planie
-
-**Jak dodać zastępstwo:**
-
-1. Zaloguj się jako dyrektor
-2. Przejdź do "Zastępstwa"
-3. Wybierz nauczyciela, daty i powód nieobecności
-4. Kliknij "Dodaj nieobecność i wygeneruj zastępstwa"
-5. System automatycznie utworzy zastępstwa
-
-#### Zarządzanie klasami
-
-Dyrektor może:
-- Przypisać wychowawcę do klasy
-- Wybrać 2 rozszerzenia dla klasy
-- Ustawić maksymalną liczbę godzin dziennie (5-8)
-- Przypisać przedmioty i nauczycieli do klasy
-- Określić liczbę godzin każdego przedmiotu w tygodniu
-
-#### Zarządzanie nauczycielami
-
-Dyrektor może:
-- Dodawać nowych nauczycieli
-- Przypisać przedmioty, które nauczyciel może uczyć (nauczyciel może mieć wiele przedmiotów)
-- Usuwać nauczycieli z systemu
-
-#### Kalendarz dni wolnych
-
-Dyrektor może:
-- Dodawać święta i dni wolne
-- Usuwać dni z kalendarza
-- Używać szybkich przycisków dla typowych świąt
-- System automatycznie pomija te dni przy generowaniu planu
-
-## Parametry planu lekcji
-
-### Godziny lekcji
-
-- Godzina rozpoczęcia: **8:00**
-- Czas trwania lekcji: **45 minut**
-- Przerwa między lekcjami: **10 minut**
-
-### Rozkład godzin:
-
-1. Lekcja: 08:00 - 08:45
-2. Lekcja: 08:55 - 09:40
-3. Lekcja: 09:50 - 10:35
-4. Lekcja: 10:45 - 11:30
-5. Lekcja: 11:40 - 12:25
-6. Lekcja: 12:35 - 13:20
-7. Lekcja: 13:30 - 14:15
-8. Lekcja: 14:25 - 15:10
-
-### Przedmioty i godziny tygodniowe
-
-System zawiera następujące przedmioty (domyślnie):
-
-- Matematyka: 5h/tydzień
-- Matematyka rozszerzona: 3h/tydzień (rozszerzenie)
-- Język polski: 5h/tydzień
-- Język angielski: 4h/tydzień
-- Język angielski rozszerzony: 3h/tydzień (rozszerzenie)
-- Geografia: 3h/tydzień
-- Biologia: 3h/tydzień
-- Chemia: 3h/tydzień
-- Fizyka: 3h/tydzień
-- Fizyka rozszerzona: 3h/tydzień (rozszerzenie)
-- Język niemiecki: 3h/tydzień
-- Język hiszpański: 3h/tydzień
-- Historia: 2h/tydzień
-- WOS: 2h/tydzień
-- WF: 4h/tydzień
-- Informatyka: 2h/tydzień
-
-Każda klasa wybiera 2 rozszerzenia (po 3h każde).
-
-## Klasy w systemie
-
-Domyślnie system zawiera 12 klas:
-- Klasy pierwsze: 1A, 1B, 1C
-- Klasy drugie: 2A, 2B, 2C
-- Klasy trzecie: 3A, 3B, 3C
-- Klasy czwarte: 4A, 4B, 4C
-
-Klasy 1-3 mają domyślnie 7 godzin dziennie.
-Klasy 4 mają domyślnie 8 godzin dziennie.
-
-## Rozwiązywanie problemów
-
-### Plan nie generuje się poprawnie
-
-1. Sprawdź czy wszystkie klasy mają przypisane przedmioty
-2. Sprawdź czy nauczyciele mają przypisane przedmioty (kwalifikacje)
-3. Upewnij się, że jest wystarczająca liczba sal
-4. Sprawdź czy suma godzin przedmiotów nie przekracza tygodniowego limitu
-
-### Nie można utworzyć zastępstwa
-
-1. Sprawdź czy są dostępni nauczyciele z odpowiednimi kwalifikacjami
-2. Upewnij się, że nauczyciele nie są jednocześnie nieobecni
-3. Sprawdź czy nauczyciele nie są zajęci w tym samym czasie
-
-### Błąd połączenia z bazą danych
-
-1. Sprawdź parametry w pliku `includes/config.php`
-2. Upewnij się, że baza danych została utworzona
-3. Sprawdź uprawnienia użytkownika MySQL
-
-## Bezpieczeństwo
-
-### Zalecenia:
-
-1. **Zmień domyślne hasła** natychmiast po instalacji
-2. **Używaj silnych haseł** dla wszystkich kont
-3. **Regularnie aktualizuj** system i PHP
-4. **Ogranicz dostęp** do plików konfiguracyjnych
-5. **Włącz HTTPS** w środowisku produkcyjnym
-6. **Regularnie twórz kopie zapasowe** bazy danych
-
-### Tworzenie kopii zapasowej:
-
-```bash
-mysqldump -u root -p plan_lekcji > backup_$(date +%Y%m%d).sql
-```
-
-### Przywracanie z kopii:
-
-```bash
-mysql -u root -p plan_lekcji < backup_20240101.sql
-```
-
-## Wsparcie i rozwój
-
-System można rozwijać o dodatkowe funkcjonalności:
-- Oceny i frekwencja
-- Komunikacja nauczyciel-rodzic
-- Zadania domowe
-- Ogłoszenia
-- Export planu do PDF
-- Aplikacja mobilna
-- Powiadomienia email/SMS
-
-## Licencja i Prawa 
-
-Produkt na licencji TEUL – TresDeliquentes Educational Use License.
-
-© 2025 TresDeliquentes.
-Oprogramowanie LibreLessons może być wykorzystywane wyłącznie w celach edukacyjnych.
-Modyfikacje są dozwolone wyłącznie na potrzeby własnej instytucji.
-Zakazane jest kopiowanie, udostępnianie, publikowanie lub odsprzedaż projektu,
-w całości lub w części, bez uprzedniej pisemnej zgody właściciela.
+ 
 
 ---
 
-Ostatnia aktualizacja: Grudzień 2025
+ 
+
+## Minimalne wymagania systemowe (serwer)
+
+ 
+
+| Komponent | Minimalne | Zalecane |
+
+|-----------|-----------|----------|
+
+| Procesor | 1 rdzeń | 2+ rdzenie |
+
+| RAM | 512 MB | 1 GB+ |
+
+| Dysk | 100 MB | 500 MB+ |
+
+| System | Linux/Windows | Ubuntu Server 22.04+ |
+
+ 
+
+### Wymagania sieciowe:
+
+- Port 80 (HTTP) lub 443 (HTTPS) otwarty w sieci lokalnej
+
+- Statyczny adres IP w sieci lokalnej (zalecane)
+
+ 
+
+---
+
+ 
+
+## Wymagane oprogramowanie
+
+ 
+
+| Program | Wersja | Uwagi |
+
+|---------|--------|-------|
+
+| PHP | 8.2+ | z rozszerzeniami: mysqli, session |
+
+| MySQL | 8.0+ | lub MariaDB 10.4+ |
+
+| Serwer WWW | Apache 2.4+ | lub Nginx |
+
+ 
+
+---
+
+ 
+
+## Instalacja na Ubuntu Server (Apache2 + MySQL)
+
+ 
+
+### Krok 1: Aktualizacja systemu
+
+ 
+
+```bash
+
+sudo apt update && sudo apt upgrade -y
+
+```
+
+ 
+
+### Krok 2: Instalacja Apache2
+
+ 
+
+```bash
+
+sudo apt install apache2 -y
+
+sudo systemctl enable apache2
+
+sudo systemctl start apache2
+
+```
+
+ 
+
+### Krok 3: Instalacja MySQL
+
+ 
+
+```bash
+
+sudo apt install mysql-server -y
+
+sudo systemctl enable mysql
+
+sudo systemctl start mysql
+
+```
+
+ 
+
+Zabezpiecz instalację MySQL:
+
+```bash
+
+sudo mysql_secure_installation
+
+```
+
+ 
+
+### Krok 4: Instalacja PHP i rozszerzeń
+
+ 
+
+```bash
+
+sudo apt install php php-mysqli php-cli libapache2-mod-php -y
+
+```
+
+ 
+
+### Krok 5: Pobranie LibreLessons
+
+ 
+
+```bash
+
+cd /var/www/html
+
+sudo curl -L https://github.com/tresdeliquentes11-byte/plan-lekcji/archive/refs/heads/main.zip -o librelessons.zip
+
+sudo apt install unzip -y
+
+sudo unzip librelessons.zip
+
+sudo mv plan-lekcji-main librelessons
+
+sudo rm librelessons.zip
+
+```
+
+ 
+
+### Krok 6: Ustawienie uprawnień
+
+ 
+
+```bash
+
+sudo chown -R www-data:www-data /var/www/html/librelessons
+
+sudo chmod -R 755 /var/www/html/librelessons
+
+```
+
+ 
+
+### Krok 7: Konfiguracja bazy danych
+
+ 
+
+Zaloguj się do MySQL:
+
+```bash
+
+sudo mysql -u root -p
+
+```
+
+ 
+
+Wykonaj następujące polecenia:
+
+```sql
+
+CREATE DATABASE plan_lekcji CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+CREATE USER 'librelessons'@'localhost' IDENTIFIED BY 'TwojeHaslo123!';
+
+GRANT ALL PRIVILEGES ON plan_lekcji.* TO 'librelessons'@'localhost';
+
+FLUSH PRIVILEGES;
+
+EXIT;
+
+```
+
+ 
+
+Zaimportuj strukturę bazy danych:
+
+```bash
+
+sudo mysql -u librelessons -p plan_lekcji < /var/www/html/librelessons/database.sql
+
+```
+
+ 
+
+### Krok 8: Konfiguracja połączenia z bazą
+
+ 
+
+Edytuj plik konfiguracyjny:
+
+```bash
+
+sudo nano /var/www/html/librelessons/includes/config.php
+
+```
+
+ 
+
+Zmień parametry połączenia:
+
+```php
+
+define('DB_HOST', 'localhost');
+
+define('DB_USER', 'librelessons');
+
+define('DB_PASS', 'TwojeHaslo123!');
+
+define('DB_NAME', 'plan_lekcji');
+
+```
+
+ 
+
+### Krok 9: Restart Apache
+
+ 
+
+```bash
+
+sudo systemctl restart apache2
+
+```
+
+ 
+
+### Krok 10: Dostęp do systemu
+
+ 
+
+Otwórz przeglądarkę i wejdź na:
+
+```
+
+http://ADRES_IP_SERWERA/librelessons
+
+```
+
+ 
+
+---
+
+ 
+
+## Instalacja na Windows (XAMPP)
+
+ 
+
+### Krok 1: Pobierz i zainstaluj XAMPP
+
+ 
+
+1. Pobierz XAMPP z [https://www.apachefriends.org](https://www.apachefriends.org)
+
+2. Uruchom instalator i zainstaluj w domyślnej lokalizacji (`C:\xampp`)
+
+3. Podczas instalacji zaznacz komponenty: **Apache**, **MySQL**, **PHP**
+
+ 
+
+### Krok 2: Uruchom XAMPP
+
+ 
+
+1. Otwórz **XAMPP Control Panel**
+
+2. Kliknij **Start** przy **Apache**
+
+3. Kliknij **Start** przy **MySQL**
+
+ 
+
+### Krok 3: Pobierz LibreLessons
+
+ 
+
+1. Pobierz ZIP z repozytorium: [https://github.com/tresdeliquentes11-byte/plan-lekcji/archive/refs/heads/main.zip](https://github.com/tresdeliquentes11-byte/plan-lekcji/archive/refs/heads/main.zip)
+
+2. Rozpakuj archiwum
+
+3. Zmień nazwę folderu `plan-lekcji-main` na `librelessons`
+
+4. Przenieś folder `librelessons` do `C:\xampp\htdocs\`
+
+ 
+
+### Krok 4: Utwórz bazę danych
+
+ 
+
+1. Otwórz przeglądarkę i wejdź na: `http://localhost/phpmyadmin`
+
+2. Kliknij **Nowa** (po lewej stronie)
+
+3. Wpisz nazwę bazy: `plan_lekcji`
+
+4. Wybierz kodowanie: `utf8mb4_general_ci`
+
+5. Kliknij **Utwórz**
+
+ 
+
+### Krok 5: Zaimportuj strukturę bazy
+
+ 
+
+1. W phpMyAdmin wybierz bazę `plan_lekcji`
+
+2. Kliknij zakładkę **Import**
+
+3. Kliknij **Wybierz plik** i wskaż: `C:\xampp\htdocs\librelessons\database.sql`
+
+4. Kliknij **Wykonaj**
+
+ 
+
+### Krok 6: Konfiguracja połączenia
+
+ 
+
+1. Otwórz plik `C:\xampp\htdocs\librelessons\includes\config.php` w edytorze tekstu
+
+2. Ustaw parametry (domyślnie XAMPP nie ma hasła):
+
+ 
+
+```php
+
+define('DB_HOST', 'localhost');
+
+define('DB_USER', 'root');
+
+define('DB_PASS', '');
+
+define('DB_NAME', 'plan_lekcji');
+
+```
+
+ 
+
+### Krok 7: Dostęp do systemu
+
+ 
+
+Otwórz przeglądarkę i wejdź na:
+
+```
+
+http://localhost/librelessons
+
+```
+
+ 
+
+---
+
+ 
+
+## Krótki tutorial - pierwsze kroki
+
+ 
+
+### Domyślne konta
+
+ 
+
+| Rola | Login | Hasło |
+
+|------|-------|-------|
+
+| Dyrektor | `dyrektor` | `dyrektor123` |
+
+| Administrator | `admin` | `admin123` |
+
+ 
+
+**Zmień hasła natychmiast po pierwszym logowaniu!**
+
+ 
+
+### Krok 1: Logowanie jako Dyrektor
+
+ 
+
+1. Wejdź na stronę główną systemu
+
+2. Wpisz login: `dyrektor`
+
+3. Wpisz hasło: `dyrektor123`
+
+4. Kliknij **Zaloguj się**
+
+ 
+
+### Krok 2: Dodanie nauczycieli
+
+ 
+
+1. W menu bocznym kliknij **Nauczyciele**
+
+2. Kliknij **Dodaj nauczyciela**
+
+3. Wypełnij formularz (imię, nazwisko, login, hasło)
+
+4. Przypisz przedmioty, które nauczyciel może uczyć
+
+5. Zapisz
+
+ 
+
+### Krok 3: Konfiguracja klas
+
+ 
+
+1. W menu kliknij **Klasy**
+
+2. Dla każdej klasy:
+
+   - Wybierz wychowawcę
+
+   - Wybierz 2 rozszerzenia (np. matematyka rozszerzona, fizyka rozszerzona)
+
+   - Ustaw liczbę godzin dziennie (5-8)
+
+   - Przypisz przedmioty i nauczycieli
+
+ 
+
+### Krok 4: Konfiguracja sal
+
+ 
+
+1. W menu kliknij **Sale**
+
+2. Dodaj sale lekcyjne (np. 101, 102, sala gimnastyczna)
+
+3. Określ typ sali (standardowa, pracownia, sportowa)
+
+ 
+
+### Krok 5: Generowanie planu lekcji
+
+ 
+
+1. W menu kliknij **Generuj Plan**
+
+2. Sprawdź, czy wszystkie klasy mają przypisane przedmioty
+
+3. Kliknij **Wygeneruj plan lekcji**
+
+4. Poczekaj na zakończenie generowania
+
+5. Sprawdź wygenerowany plan w zakładce **Podgląd planu**
+
+ 
+
+### Krok 6: Zarządzanie zastępstwami
+
+ 
+
+Gdy nauczyciel jest nieobecny:
+
+1. W menu kliknij **Zastępstwa**
+
+2. Wybierz nieobecnego nauczyciela
+
+3. Podaj daty nieobecności
+
+4. Kliknij **Dodaj nieobecność i wygeneruj zastępstwa**
+
+5. System automatycznie znajdzie zastępstwa
+
+ 
+
+### Role użytkowników - podsumowanie
+
+ 
+
+| Rola | Możliwości |
+
+|------|------------|
+
+| **Dyrektor** | Pełen dostęp - generowanie planu, zastępstwa, zarządzanie wszystkim |
+
+| **Administrator** | Zarządzanie kontami użytkowników (uczniowie, nauczyciele) |
+
+| **Nauczyciel** | Podgląd własnego planu lekcji |
+
+| **Uczeń** | Podgląd planu swojej klasy |
+
+ 
+
+---
+
+ 
+
+## Rozkład godzin lekcyjnych
+
+ 
+
+| Nr lekcji | Godziny |
+
+|-----------|---------|
+
+| 1 | 08:00 - 08:45 |
+
+| 2 | 08:55 - 09:40 |
+
+| 3 | 09:50 - 10:35 |
+
+| 4 | 10:45 - 11:30 |
+
+| 5 | 11:40 - 12:25 |
+
+| 6 | 12:35 - 13:20 |
+
+| 7 | 13:30 - 14:15 |
+
+| 8 | 14:25 - 15:10 |
+
+ 
+
+---
+
+ 
+
+## Licencja
+
+ 
+
+LibreLessons jest licencjonowane na zasadach **TEUL** (TresDeliquentes Educational Use License).
+
+ 
+
+- Dozwolone użycie wyłącznie w celach edukacyjnych
+
+- Modyfikacje dozwolone na potrzeby własnej instytucji
+
+- Zakaz kopiowania, publikacji i odsprzedaży bez zgody autora
+
+ 
+
+© 2025 TresDeliquentes
