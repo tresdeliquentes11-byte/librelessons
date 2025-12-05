@@ -41,7 +41,6 @@
  
 
 | Komponent | Minimalne | Zalecane |
-
 |-----------|-----------|----------|
 | Procesor | 1 rdzeń | 2+ rdzenie |
 | RAM | 512 MB | 1 GB+ |
