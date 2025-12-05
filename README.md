@@ -28,7 +28,7 @@
 
 ### Link do repozytorium:
 
-[https://github.com/tresdeliquentes11-byte/plan-lekcji](https://github.com/tresdeliquentes11-byte/plan-lekcji)
+[https://github.com/tresdeliquentes11-byte/plan-lekcji](https://github.com/tresdeliquentes11-byte/librelessons)
 
  
 
@@ -154,15 +154,10 @@ sudo apt install php php-mysqli php-cli libapache2-mod-php -y
 ```bash
 
 cd /var/www/html
-
-sudo curl -L https://github.com/tresdeliquentes11-byte/plan-lekcji/archive/refs/heads/main.zip -o librelessons.zip
-
+sudo curl -L https://github.com/tresdeliquentes11-byte/librelessons/archive/refs/heads/main.zip -o librelessons.zip
 sudo apt install unzip -y
-
 sudo unzip librelessons.zip
-
 sudo mv plan-lekcji-main librelessons
-
 sudo rm librelessons.zip
 
 ```
@@ -176,7 +171,6 @@ sudo rm librelessons.zip
 ```bash
 
 sudo chown -R www-data:www-data /var/www/html/librelessons
-
 sudo chmod -R 755 /var/www/html/librelessons
 
 ```
@@ -202,13 +196,9 @@ Wykonaj następujące polecenia:
 ```sql
 
 CREATE DATABASE plan_lekcji CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-
 CREATE USER 'librelessons'@'localhost' IDENTIFIED BY 'TwojeHaslo123!';
-
 GRANT ALL PRIVILEGES ON plan_lekcji.* TO 'librelessons'@'localhost';
-
 FLUSH PRIVILEGES;
-
 EXIT;
 
 ```
@@ -244,11 +234,8 @@ Zmień parametry połączenia:
 ```php
 
 define('DB_HOST', 'localhost');
-
 define('DB_USER', 'librelessons');
-
 define('DB_PASS', 'TwojeHaslo123!');
-
 define('DB_NAME', 'plan_lekcji');
 
 ```
