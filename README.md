@@ -493,9 +493,23 @@ http://localhost/librelessons
 
 5. Sprawdź wygenerowany plan w zakładce **Podgląd planu**
 
+
+ 
+### Krok 6: Tworzenie/Zmiana planu lekcji
+
  
 
-### Krok 6: Zarządzanie zastępstwami
+1. W menu kliknij **Edytuj plan**
+
+2. Dodaj/Usuń/Edutyj/Przesuń Lekcje
+
+3. Sprawdź czy nie występują konflikty, naciśnij `Sprawdź konflikty`
+
+4. Zapisz zmiany i sprawdź czy transakcja się udała
+
+
+
+### Krok 7: Zarządzanie zastępstwami
 
  
 
@@ -513,7 +527,7 @@ Gdy nauczyciel jest nieobecny:
 
  
 
-### Role użytkowników - podsumowanie
+### Role użytkowników
 
  
 
@@ -530,20 +544,11 @@ Gdy nauczyciel jest nieobecny:
 
  
 
-## Rozkład godzin lekcyjnych
+### Doatkowe informacje
 
  
 
-| Nr lekcji | Godziny |
-|-----------|---------|
-| 1 | 08:00 - 08:45 |
-| 2 | 08:55 - 09:40 |
-| 3 | 09:50 - 10:35 |
-| 4 | 10:45 - 11:30 |
-| 5 | 11:40 - 12:25 |
-| 6 | 12:35 - 13:20 |
-| 7 | 13:30 - 14:15 |
-| 8 | 14:25 - 15:10 |
+W systemie dostępnych jest znacznie więcej funkcji, niż przedstawiono w niniejszym poradniku. Ma on jedynie wprowadzić użytkownika w ekosystem LibreLessons i ułatwić rozpoczęcie pracy z aplikacją. Aby lepiej poznać pełne możliwości programu, warto samodzielnie przejrzeć wszystkie panele dostępne w interfejsach Dyrektora oraz Administratora.
 
  
 
