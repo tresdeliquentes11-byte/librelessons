@@ -43,13 +43,9 @@
 | Komponent | Minimalne | Zalecane |
 
 |-----------|-----------|----------|
-
 | Procesor | 1 rdzeń | 2+ rdzenie |
-
 | RAM | 512 MB | 1 GB+ |
-
 | Dysk | 100 MB | 500 MB+ |
-
 | System | Linux/Windows | Ubuntu Server 22.04+ |
 
  
@@ -71,13 +67,9 @@
  
 
 | Program | Wersja | Uwagi |
-
 |---------|--------|-------|
-
 | PHP | 8.2+ | z rozszerzeniami: mysqli, session |
-
 | MySQL | 8.0+ | lub MariaDB 10.4+ |
-
 | Serwer WWW | Apache 2.4+ | lub Nginx |
 
  
@@ -417,11 +409,8 @@ http://localhost/librelessons
  
 
 | Rola | Login | Hasło |
-
 |------|-------|-------|
-
 | Dyrektor | `dyrektor` | `dyrektor123` |
-
 | Administrator | `admin` | `admin123` |
 
  
@@ -529,15 +518,10 @@ Gdy nauczyciel jest nieobecny:
  
 
 | Rola | Możliwości |
-
 |------|------------|
-
 | **Dyrektor** | Pełen dostęp - generowanie planu, zastępstwa, zarządzanie wszystkim |
-
 | **Administrator** | Zarządzanie kontami użytkowników (uczniowie, nauczyciele) |
-
 | **Nauczyciel** | Podgląd własnego planu lekcji |
-
 | **Uczeń** | Podgląd planu swojej klasy |
 
  
@@ -551,23 +535,14 @@ Gdy nauczyciel jest nieobecny:
  
 
 | Nr lekcji | Godziny |
-
 |-----------|---------|
-
 | 1 | 08:00 - 08:45 |
-
 | 2 | 08:55 - 09:40 |
-
 | 3 | 09:50 - 10:35 |
-
 | 4 | 10:45 - 11:30 |
-
 | 5 | 11:40 - 12:25 |
-
 | 6 | 12:35 - 13:20 |
-
 | 7 | 13:30 - 14:15 |
-
 | 8 | 14:25 - 15:10 |
 
  
