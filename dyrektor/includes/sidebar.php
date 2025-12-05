@@ -65,6 +65,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <span>Kalendarz</span>
         </a>
 
+        <a href="ustawienia.php" class="nav-item <?php echo ($current_page == 'ustawienia.php') ? 'active' : ''; ?>">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Dzwonki</span>
+        </a>
+
         <div class="nav-separator">Nauczyciele i Dostępność</div>
 
         <a href="nauczyciele.php" class="nav-item <?php echo ($current_page == 'nauczyciele.php') ? 'active' : ''; ?>">
@@ -117,16 +125,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <polyline points="17 2 12 7 7 2"></polyline>
             </svg>
             <span>Sale</span>
-        </a>
-
-        <div class="nav-separator">System</div>
-
-        <a href="ustawienia.php" class="nav-item <?php echo ($current_page == 'ustawienia.php') ? 'active' : ''; ?>">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M12 1v6m0 6v6m8.66-13a9 9 0 0 1 0 12M3.34 6a9 9 0 0 1 0 12"></path>
-            </svg>
-            <span>Ustawienia</span>
         </a>
     </nav>
 
