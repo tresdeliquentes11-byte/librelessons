@@ -435,7 +435,7 @@ class PlanEdytor {
                 this.zaladujPlan();
             } else {
                 if (data_response.konflikty) {
-                    this.pokazKonfl yktyModal(data_response.konflikty);
+                    this.pokazKonflyktyModal(data_response.konflikty);
                 }
                 this.pokazAlertModal(data_response.message, 'error');
             }
