@@ -153,7 +153,7 @@ cd /var/www/html
 sudo curl -L https://github.com/tresdeliquentes11-byte/librelessons/archive/refs/heads/main.zip -o librelessons.zip
 sudo apt install unzip -y
 sudo unzip librelessons.zip
-sudo mv plan-lekcji-main librelessons
+sudo mv librelessons-main librelessons
 sudo rm librelessons.zip
 
 ```
