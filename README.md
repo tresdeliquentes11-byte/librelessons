@@ -304,7 +304,7 @@ http://ADRES_IP_SERWERA/librelessons
 
 2. Rozpakuj archiwum
 
-3. Zmień nazwę folderu `plan-lekcji-main` na `librelessons`
+3. Zmień nazwę folderu `librelessons-main` na `librelessons`
 
 4. Przenieś folder `librelessons` do `C:\xampp\htdocs\`
 
