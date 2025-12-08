@@ -353,11 +353,8 @@ http://ADRES_IP_SERWERA/librelessons
 ```php
 
 define('DB_HOST', 'localhost');
-
 define('DB_USER', 'root');
-
 define('DB_PASS', '');
-
 define('DB_NAME', 'plan_lekcji');
 
 ```
