@@ -70,18 +70,6 @@ class GeneratorZastepstw {
         $zastepstwa_pominiete = [];
 
         while ($lekcja = $lekcje->fetch_assoc()) {
-            // Sprawdź czy lekcja jest na początku lub końcu dnia - jeśli tak, pomijamy
-            if ($this->czyLekcjaNaPoczatkuLubKoncuDnia($lekcja['klasa_id'], $lekcja['data'], $lekcja['numer_lekcji'])) {
-                $zastepstwa_pominiete[] = [
-                    'data' => $lekcja['data'],
-                    'lekcja' => $lekcja['numer_lekcji'],
-                    'przedmiot' => $lekcja['przedmiot_nazwa'],
-                    'klasa' => $lekcja['klasa_nazwa'],
-                    'powod' => 'pierwsza_lub_ostatnia_lekcja'
-                ];
-                continue;
-            }
-
             // Priorytet 1: Szukamy nauczyciela tego samego przedmiotu
             $nauczyciel_zastepujacy = $this->znajdzNauczycielaZastepujacego(
                 $lekcja['przedmiot_id'],
@@ -102,7 +90,7 @@ class GeneratorZastepstw {
             }
 
             if ($nauczyciel_zastepujacy) {
-                // Tworzymy zastępstwo
+                // Znaleziono nauczyciela - tworzymy zastępstwo dla każdej lekcji (nawet na początku/końcu dnia)
                 $this->utworzZastepstwo(
                     $lekcja['id'],
                     $nieobecnosc_id,
@@ -120,12 +108,25 @@ class GeneratorZastepstw {
 
                 $zastepstwa_utworzone++;
             } else {
-                $zastepstwa_niemozliwe[] = [
-                    'data' => $lekcja['data'],
-                    'lekcja' => $lekcja['numer_lekcji'],
-                    'przedmiot' => $lekcja['przedmiot_nazwa'],
-                    'klasa' => $lekcja['klasa_nazwa']
-                ];
+                // Nie znaleziono nauczyciela - sprawdź czy można pominąć
+                if ($this->czyLekcjaNaPoczatkuLubKoncuDnia($lekcja['klasa_id'], $lekcja['data'], $lekcja['numer_lekcji'])) {
+                    // Lekcja na początku/końcu dnia - można pominąć (uczniowie przyjdą później/wyjdą wcześniej)
+                    $zastepstwa_pominiete[] = [
+                        'data' => $lekcja['data'],
+                        'lekcja' => $lekcja['numer_lekcji'],
+                        'przedmiot' => $lekcja['przedmiot_nazwa'],
+                        'klasa' => $lekcja['klasa_nazwa'],
+                        'powod' => 'pierwsza_lub_ostatnia_lekcja_brak_nauczyciela'
+                    ];
+                } else {
+                    // Lekcja w środku dnia - oznaczamy jako niemożliwe
+                    $zastepstwa_niemozliwe[] = [
+                        'data' => $lekcja['data'],
+                        'lekcja' => $lekcja['numer_lekcji'],
+                        'przedmiot' => $lekcja['przedmiot_nazwa'],
+                        'klasa' => $lekcja['klasa_nazwa']
+                    ];
+                }
             }
         }
 
