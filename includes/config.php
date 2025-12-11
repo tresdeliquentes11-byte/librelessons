@@ -45,6 +45,65 @@ function e($string) {
     return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
 }
 
+// CSRF Protection Functions
+function csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verify_csrf_token($token) {
+    if (!isset($_SESSION['csrf_token'])) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function csrf_field() {
+    return '<input type="hidden" name="csrf_token" value="' . csrf_token() . '">';
+}
+
+// Rate Limiting Functions
+function check_rate_limit($key, $max_attempts = 5, $timeout_minutes = 15) {
+    $attempts_key = 'rate_limit_' . $key;
+    $timeout_key = 'rate_limit_timeout_' . $key;
+
+    // Check if timeout is still active
+    if (isset($_SESSION[$timeout_key]) && $_SESSION[$timeout_key] > time()) {
+        $remaining = ceil(($_SESSION[$timeout_key] - time()) / 60);
+        return ['allowed' => false, 'message' => "Zbyt wiele prób. Spróbuj ponownie za $remaining minut."];
+    }
+
+    // Reset counter if timeout expired
+    if (isset($_SESSION[$timeout_key]) && $_SESSION[$timeout_key] <= time()) {
+        unset($_SESSION[$attempts_key]);
+        unset($_SESSION[$timeout_key]);
+    }
+
+    // Initialize or increment attempts
+    if (!isset($_SESSION[$attempts_key])) {
+        $_SESSION[$attempts_key] = 0;
+    }
+
+    $_SESSION[$attempts_key]++;
+
+    // Check if limit exceeded
+    if ($_SESSION[$attempts_key] > $max_attempts) {
+        $_SESSION[$timeout_key] = time() + ($timeout_minutes * 60);
+        return ['allowed' => false, 'message' => "Zbyt wiele prób. Spróbuj ponownie za $timeout_minutes minut."];
+    }
+
+    return ['allowed' => true, 'remaining' => $max_attempts - $_SESSION[$attempts_key]];
+}
+
+function reset_rate_limit($key) {
+    $attempts_key = 'rate_limit_' . $key;
+    $timeout_key = 'rate_limit_timeout_' . $key;
+    unset($_SESSION[$attempts_key]);
+    unset($_SESSION[$timeout_key]);
+}
+
 // Funkcja do formatowania daty
 function formatuj_date($data) {
     if (empty($data)) {
