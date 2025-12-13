@@ -1,0 +1,999 @@
+/**
+ * © 2025 TresDeliquentes. Wszystkie prawa zastrzeżone.
+ * LibreLessons - Style systemu oceniania v4.0
+ */
+
+/* ============================================================
+   LAYOUT I KOMPONENTY PODSTAWOWE
+   ============================================================ */
+
+.grade-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.grade-card h2, .grade-card h3 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    font-size: 20px;
+}
+
+/* ============================================================
+   WYBÓR KLASY I PRZEDMIOTU
+   ============================================================ */
+
+.class-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.class-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.class-box:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.class-box h3 {
+    margin: 0 0 15px 0;
+    color: #667eea;
+    font-size: 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+}
+
+.subject-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.subject-link {
+    display: block;
+    padding: 10px 15px;
+    background: white;
+    border-radius: 8px;
+    color: #2c3e50;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid #e9ecef;
+}
+
+.subject-link:hover {
+    background: #667eea;
+    color: white;
+    transform: translateX(5px);
+}
+
+/* ============================================================
+   BREADCRUMB I NAWIGACJA
+   ============================================================ */
+
+.breadcrumb {
+    background: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.breadcrumb a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================================
+   PASEK STATYSTYK
+   ============================================================ */
+
+.stats-bar {
+    background: white;
+    border-radius: 15px;
+    padding: 20px 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stat-item {
+    text-align: center;
+    min-width: 100px;
+}
+
+.stat-item .number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.stat-item .label {
+    font-size: 13px;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+/* ============================================================
+   PASEK AKCJI
+   ============================================================ */
+
+.action-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+}
+
+.btn-danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+.btn-small {
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+/* ============================================================
+   TABELA OCEN
+   ============================================================ */
+
+.grade-table-container {
+    overflow-x: auto;
+}
+
+.grade-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.grade-table th,
+.grade-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.grade-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.grade-table th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.grade-table th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.grade-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.student-col {
+    width: 200px;
+    font-weight: 500;
+}
+
+.grades-col {
+    min-width: 300px;
+}
+
+.avg-col,
+.predicted-col {
+    width: 100px;
+    text-align: center !important;
+}
+
+.actions-col {
+    width: 80px;
+    text-align: center !important;
+}
+
+/* ============================================================
+   ODZNAKI OCEN
+   ============================================================ */
+
+.grades-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.grade-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.grade-badge:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.grade-badge .poprawa-indicator {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #f39c12;
+    color: white;
+    font-size: 9px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.average-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.predicted-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.no-grades {
+    color: #adb5bd;
+    font-style: italic;
+    font-size: 13px;
+}
+
+/* ============================================================
+   LEGENDA KATEGORII
+   ============================================================ */
+
+.legend-card {
+    background: #f8f9fa;
+}
+
+.category-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 8px;
+}
+
+.category-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.category-name {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.category-weight {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* ============================================================
+   MODALE
+   ============================================================ */
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content.modal-large {
+    max-width: 700px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #2c3e50;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #6c757d;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #e74c3c;
+}
+
+/* ============================================================
+   FORMULARZE
+   ============================================================ */
+
+.grade-form {
+    padding: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Checkboxy dla wielu uczniów */
+.checkbox-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.checkbox-actions button {
+    padding: 5px 12px;
+    background: #e9ecef;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.checkbox-actions button:hover {
+    background: #dee2e6;
+}
+
+.students-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.checkbox-label:hover {
+    background: #e9ecef;
+}
+
+/* ============================================================
+   SZCZEGÓŁY OCENY
+   ============================================================ */
+
+.grade-details {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row .label {
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.detail-row .value {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.detail-row .grade-big {
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.poprawa-info {
+    color: #f39c12 !important;
+    font-style: italic;
+}
+
+.grade-form hr {
+    border: none;
+    border-top: 1px solid #e9ecef;
+    margin: 20px 0;
+}
+
+.grade-form h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+/* ============================================================
+   ALERTY
+   ============================================================ */
+
+.alert {
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* ============================================================
+   PUSTE STANY
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.empty-state p {
+    margin: 10px 0;
+}
+
+/* ============================================================
+   WYKRESY I STATYSTYKI
+   ============================================================ */
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 20px 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card h4 {
+    margin: 0 0 15px 0;
+    color: #667eea;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Rozkład ocen */
+.distribution-bar {
+    display: flex;
+    height: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 15px 0;
+}
+
+.distribution-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 12px;
+    transition: flex 0.3s ease;
+}
+
+.distribution-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+/* ============================================================
+   TABELA RANKINGOWA
+   ============================================================ */
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ranking-table th,
+.ranking-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.ranking-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #667eea;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.ranking-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.rank-1 {
+    background: linear-gradient(135deg, #ffd700 0%, #ffb800 100%);
+    color: #5c4d00;
+}
+
+.rank-2 {
+    background: linear-gradient(135deg, #c0c0c0 0%, #a0a0a0 100%);
+    color: #404040;
+}
+
+.rank-3 {
+    background: linear-gradient(135deg, #cd7f32 0%, #a66b28 100%);
+    color: white;
+}
+
+.rank-other {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+/* Trend wskaźnik */
+.trend-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.trend-up {
+    color: #27ae60;
+}
+
+.trend-down {
+    color: #e74c3c;
+}
+
+.trend-stable {
+    color: #6c757d;
+}
+
+/* ============================================================
+   KARTY UCZNIA
+   ============================================================ */
+
+.student-grades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.subject-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #667eea;
+    transition: all 0.3s ease;
+}
+
+.subject-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.subject-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.subject-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.teacher-name {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.subject-average {
+    text-align: right;
+}
+
+.avg-value {
+    font-size: 24px;
+    font-weight: 700;
+    display: block;
+}
+
+.avg-label {
+    font-size: 11px;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.subject-grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.predicted-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.predicted-label {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.predicted-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+/* ============================================================
+   RODO INFO
+   ============================================================ */
+
+.rodo-notice {
+    background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+    border: 1px solid #667eea40;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: #5a5a5a;
+}
+
+.rodo-notice strong {
+    color: #667eea;
+}
+
+/* ============================================================
+   RESPONSYWNOŚĆ
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .teacher-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+    }
+
+    .teacher-header h1 {
+        font-size: 18px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .stats-bar {
+        padding: 15px;
+    }
+
+    .stat-item .number {
+        font-size: 22px;
+    }
+
+    .action-bar {
+        flex-direction: column;
+    }
+
+    .action-bar .btn {
+        width: 100%;
+    }
+
+    .grade-table th,
+    .grade-table td {
+        padding: 10px;
+        font-size: 13px;
+    }
+
+    .student-col {
+        width: auto;
+        min-width: 120px;
+    }
+
+    .grade-badge {
+        min-width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .modal-content {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .student-grades-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .class-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .grade-card {
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .grades-col {
+        min-width: 150px;
+    }
+
+    .avg-col,
+    .predicted-col,
+    .actions-col {
+        display: none;
+    }
+
+    .grade-table th:nth-child(3),
+    .grade-table th:nth-child(4),
+    .grade-table th:nth-child(5),
+    .grade-table td:nth-child(3),
+    .grade-table td:nth-child(4),
+    .grade-table td:nth-child(5) {
+        display: none;
+    }
+}

@@ -194,6 +194,21 @@ $dni_tygodnia = [
             transform: translateY(-2px);
         }
 
+        .btn-grades {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-grades:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
         .stats-bar {
             background: white;
             border-radius: 15px;
@@ -432,6 +447,7 @@ $dni_tygodnia = [
                 </h1>
                 <div class="user-info">
                     <span><?php echo e($_SESSION['user_name']); ?></span>
+                    <a href="oceny.php" class="btn-grades">Dziennik ocen</a>
                     <a href="zmiana_hasla.php" class="btn-settings">Zmiana hasła</a>
                     <a href="../logout.php" class="btn-logout">Wyloguj</a>
                 </div>
