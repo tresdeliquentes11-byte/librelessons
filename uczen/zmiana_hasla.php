@@ -65,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="pl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -280,6 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <div class="student-layout">
         <div class="student-container">
@@ -299,6 +301,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </header>
 
+            <div class="nav-tabs" style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
+                <a href="dashboard.php"
+                    style="background: white; color: #2c3e50; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">📅
+                    Plan Lekcji</a>
+                <a href="oceny.php"
+                    style="background: white; color: #2c3e50; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">📊
+                    Oceny</a>
+                <a href="wiadomosci.php"
+                    style="background: white; color: #2c3e50; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">✉️
+                    Wiadomości</a>
+                <a href="zmiana_hasla.php"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">🔐
+                    Konto</a>
+            </div>
+
             <div class="password-card">
                 <h2>Zmień swoje hasło</h2>
 
@@ -311,17 +328,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="form-group">
                         <label for="stare_haslo">Aktualne hasło *</label>
-                        <input type="password" id="stare_haslo" name="stare_haslo" required autocomplete="current-password">
+                        <input type="password" id="stare_haslo" name="stare_haslo" required
+                            autocomplete="current-password">
                     </div>
 
                     <div class="form-group">
                         <label for="nowe_haslo">Nowe hasło *</label>
-                        <input type="password" id="nowe_haslo" name="nowe_haslo" required minlength="6" autocomplete="new-password">
+                        <input type="password" id="nowe_haslo" name="nowe_haslo" required minlength="6"
+                            autocomplete="new-password">
                     </div>
 
                     <div class="form-group">
                         <label for="potwierdzenie">Powtórz nowe hasło *</label>
-                        <input type="password" id="potwierdzenie" name="potwierdzenie" required minlength="6" autocomplete="new-password">
+                        <input type="password" id="potwierdzenie" name="potwierdzenie" required minlength="6"
+                            autocomplete="new-password">
                     </div>
 
                     <button type="submit" class="btn-submit">Zmień hasło</button>
@@ -339,4 +359,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </body>
+
 </html>

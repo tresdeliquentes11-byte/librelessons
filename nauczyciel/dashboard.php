@@ -106,6 +106,7 @@ $dni_tygodnia = [
 ?>
 <!DOCTYPE html>
 <html lang="pl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -418,6 +419,7 @@ $dni_tygodnia = [
         }
     </style>
 </head>
+
 <body>
     <div class="teacher-layout">
         <div class="teacher-container">
@@ -437,13 +439,30 @@ $dni_tygodnia = [
                 </div>
             </header>
 
+            <div class="nav-tabs" style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <a href="dashboard.php"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">📅
+                    Plan Lekcji</a>
+                <a href="oceny.php"
+                    style="background: white; color: #2c3e50; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">📊
+                    Oceny</a>
+                <a href="wiadomosci.php"
+                    style="background: white; color: #2c3e50; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">✉️
+                    Wiadomości</a>
+                <a href="zmiana_hasla.php"
+                    style="background: white; color: #2c3e50; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">🔐
+                    Konto</a>
+            </div>
+
             <div class="stats-bar">
                 <div class="stat-item">
                     <div class="number"><?php echo $liczba_lekcji; ?></div>
                     <div class="label">Lekcji w tym tygodniu</div>
                 </div>
                 <div class="stat-item">
-                    <div class="number"><?php echo count(array_filter($plan, function($dzien) { return !empty($dzien); })); ?></div>
+                    <div class="number">
+                        <?php echo count(array_filter($plan, function ($dzien) {
+                            return !empty($dzien); })); ?></div>
                     <div class="label">Dni z zajęciami</div>
                 </div>
             </div>
@@ -454,7 +473,8 @@ $dni_tygodnia = [
                         ← Poprzedni tydzień
                     </button>
                     <span class="current-week">
-                        📅 <?php echo formatuj_date($poczatek_tygodnia); ?> - <?php echo formatuj_date($koniec_tygodnia); ?>
+                        📅 <?php echo formatuj_date($poczatek_tygodnia); ?> -
+                        <?php echo formatuj_date($koniec_tygodnia); ?>
                     </span>
                     <button onclick="location.href='?tydzien=<?php echo $tydzien_offset + 1; ?>'">
                         Następny tydzień →
@@ -483,7 +503,8 @@ $dni_tygodnia = [
                                 <tr>
                                     <td class="time-cell">
                                         <strong><?php echo $lekcja_nr; ?>.</strong>
-                                        <small><?php echo date('H:i', $start_time); ?> - <?php echo date('H:i', $end_time); ?></small>
+                                        <small><?php echo date('H:i', $start_time); ?> -
+                                            <?php echo date('H:i', $end_time); ?></small>
                                     </td>
                                     <?php foreach ($dni_tygodnia as $data => $dzien): ?>
                                         <td class="lesson-cell">
@@ -513,4 +534,5 @@ $dni_tygodnia = [
         </div>
     </div>
 </body>
+
 </html>
