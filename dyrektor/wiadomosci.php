@@ -26,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wyslij'])) {
             $wiadomosc_id = wyslij_wiadomosc($conn, $user_id, $odbiorcy, $temat, $tresc, $czy_wazne);
 
             if ($wiadomosc_id) {
-                if (!empty($_FILES['zalacznik']['name'])) {
+                // Obsługa załączników - sprawdź czy plik został faktycznie wysłany
+                if (isset($_FILES['zalacznik']) && $_FILES['zalacznik']['error'] === UPLOAD_ERR_OK && $_FILES['zalacznik']['size'] > 0) {
                     $upload = upload_zalacznik($_FILES['zalacznik'], $wiadomosc_id);
                     if (!isset($upload['error'])) {
                         dodaj_zalacznik(
@@ -366,11 +367,13 @@ $lista_odbiorcow = pobierz_liste_odbiorcow($conn, $user_id, $user_type);
                                         <div class="mail-item <?php echo !$w['czy_przeczytana'] ? 'unread' : ''; ?>"
                                             onclick="location.href='?folder=<?php echo $folder; ?>&id=<?php echo $w['id']; ?>'">
                                             <div class="mail-sender">
-                                                <?php echo e($w['nadawca_imie'] . ' ' . $w['nadawca_nazwisko']); ?></div>
+                                                <?php echo e($w['nadawca_imie'] . ' ' . $w['nadawca_nazwisko']); ?>
+                                            </div>
                                             <div class="mail-content">
                                                 <div class="mail-subject">
                                                     <?php if ($w['czy_wazne']): ?>❗<?php endif; ?><?php if ($w['liczba_zalacznikow'] > 0): ?>📎<?php endif; ?>
-                                                    <?php echo e($w['temat']); ?></div>
+                                                    <?php echo e($w['temat']); ?>
+                                                </div>
                                                 <div class="mail-preview"><?php echo e(substr($w['tresc'], 0, 80)); ?>...</div>
                                             </div>
                                             <div class="mail-date"><?php echo formatuj_date_wiadomosci($w['data_wyslania']); ?>
@@ -403,7 +406,8 @@ $lista_odbiorcow = pobierz_liste_odbiorcow($conn, $user_id, $user_type);
                             <optgroup label="<?php echo e($grupa); ?>">
                                 <?php foreach ($osoby as $os): ?>
                                     <option value="<?php echo $os['id']; ?>">
-                                        <?php echo e($os['imie'] . ' ' . $os['nazwisko']); ?></option>
+                                        <?php echo e($os['imie'] . ' ' . $os['nazwisko']); ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </optgroup>
                         <?php endforeach; ?>

@@ -30,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wyslij'])) {
             $wiadomosc_id = wyslij_wiadomosc($conn, $user_id, $odbiorcy, $temat, $tresc, $czy_wazne);
 
             if ($wiadomosc_id) {
-                // Obsługa załączników
-                if (!empty($_FILES['zalacznik']['name'])) {
+                // Obsługa załączników - sprawdź czy plik został faktycznie wysłany
+                if (isset($_FILES['zalacznik']) && $_FILES['zalacznik']['error'] === UPLOAD_ERR_OK && $_FILES['zalacznik']['size'] > 0) {
                     $upload = upload_zalacznik($_FILES['zalacznik'], $wiadomosc_id);
                     if (isset($upload['error'])) {
                         $error = 'Wiadomość wysłana, ale: ' . $upload['error'];
