@@ -6,9 +6,22 @@ sprawdz_uprawnienia('dyrektor');
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
 
+// Automatyczne czyszczenie starych załączników (>30 dni)
+wyczysc_stare_zalaczniki($conn, 30);
+
 // Obsługa akcji
 $message = '';
 $error = '';
+
+// Ręczne czyszczenie wszystkich załączników
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['czysc_wszystkie'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = 'Błąd tokenu CSRF';
+    } else {
+        $ilosc = wyczysc_wszystkie_zalaczniki($conn);
+        $message = "Wyczyszczono wszystkie załączniki z serwera ($ilosc plików).";
+    }
+}
 
 // Wysyłanie wiadomości
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wyslij'])) {
@@ -312,6 +325,18 @@ $lista_odbiorcow = pobierz_liste_odbiorcow($conn, $user_id, $user_type);
                             Wysłane</a>
                         <a href="?folder=archiwum" class="<?php echo $folder === 'archiwum' ? 'active' : ''; ?>">📁
                             Archiwum</a>
+
+                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e9ecef;">
+
+                        <form method="post"
+                            onsubmit="return confirm('⚠️ Czy na pewno usunąć WSZYSTKIE załączniki z serwera?\nTej operacji nie można cofnąć!');">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="czysc_wszystkie" value="1">
+                            <button type="submit" class="btn btn-danger"
+                                style="width: 100%; font-size: 13px; padding: 8px;">
+                                🗑️ Usuń wszystkie załączniki
+                            </button>
+                        </form>
                     </div>
 
                     <div class="mail-main">

@@ -408,4 +408,76 @@ function formatuj_date_wiadomosci($data)
         return date('d.m.Y H:i', $timestamp);
     }
 }
+/**
+ * Czyści stare załączniki z serwera i bazy danych
+ */
+function wyczysc_stare_zalaczniki($conn, $dni = 30)
+{
+    $limit_czasu = date('Y-m-d H:i:s', strtotime("-{$dni} days"));
+
+    // Pobierz załączniki do usunięcia
+    $stmt = $conn->prepare("
+        SELECT wz.id, wz.sciezka 
+        FROM wiadomosci_zalaczniki wz
+        JOIN wiadomosci w ON wz.wiadomosc_id = w.id
+        WHERE w.data_wyslania < ?
+    ");
+    $stmt->bind_param("s", $limit_czasu);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $usuniete_pliki = 0;
+    $ids_to_delete = [];
+
+    $base_dir = dirname(__DIR__) . '/';
+
+    while ($row = $result->fetch_assoc()) {
+        $pelna_sciezka = $base_dir . $row['sciezka'];
+        if (file_exists($pelna_sciezka)) {
+            if (unlink($pelna_sciezka)) {
+                $usuniete_pliki++;
+            }
+        } else {
+            // Plik nie istnieje, też uznajemy za usunięty "z systemu"
+            $usuniete_pliki++;
+        }
+        $ids_to_delete[] = $row['id'];
+    }
+    $stmt->close();
+
+    // Usuń rekordy z bazy
+    if (!empty($ids_to_delete)) {
+        $ids_string = implode(',', $ids_to_delete);
+        $conn->query("DELETE FROM wiadomosci_zalaczniki WHERE id IN ($ids_string)");
+    }
+
+    return $usuniete_pliki;
+}
+
+/**
+ * Czyści wszystkie załączniki z serwera i bazy danych
+ */
+function wyczysc_wszystkie_zalaczniki($conn)
+{
+    // Pobierz wszystkie załączniki
+    $result = $conn->query("SELECT id, sciezka FROM wiadomosci_zalaczniki");
+
+    $usuniete_pliki = 0;
+
+    $base_dir = dirname(__DIR__) . '/';
+
+    while ($row = $result->fetch_assoc()) {
+        $pelna_sciezka = $base_dir . $row['sciezka'];
+        if (file_exists($pelna_sciezka)) {
+            if (unlink($pelna_sciezka)) {
+                $usuniete_pliki++;
+            }
+        }
+    }
+
+    // Wyczyść tabelę
+    $conn->query("TRUNCATE TABLE wiadomosci_zalaczniki");
+
+    return $usuniete_pliki;
+}
 ?>
