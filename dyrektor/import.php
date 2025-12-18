@@ -24,22 +24,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
         } elseif (!in_array($file['type'], ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])) {
             $message = 'Nieprawidłowy typ pliku. Dozwolone są tylko pliki CSV i XLSX.';
             $message_type = 'error';
+        } elseif (!in_array($file['type'], ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])) {
+            // Additional MIME type check for security
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $detected_type = $finfo->file($file['tmp_name'], FILEINFO_MIME_TYPE);
+                $valid_mime_types = [
+                    'text/csv',
+                    'text/plain',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                ];
+                
+                if (!in_array($detected_type, $valid_mime_types)) {
+                    $message = 'Nieprawidłowy typ pliku. Wykryto niebezpieczny typ: ' . $detected_type;
+                    $message_type = 'error';
+                } else {
+                    // MIME type is valid, proceed with original type check
+                    if (!in_array($file['type'], ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])) {
+                        $message = 'Nieprawidłowy typ pliku. Dozwolone są tylko pliki CSV i XLSX.';
+                        $message_type = 'error';
+                    }
+                }
+                finfo_close($finfo);
+            } else {
+                // If finfo fails, proceed with basic validation
+                if (!in_array($file['type'], ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])) {
+                    $message = 'Nieprawidłowy typ pliku. Dozwolone są tylko pliki CSV i XLSX.';
+                    $message_type = 'error';
+                }
+            }
         } elseif ($file['size'] > 5 * 1024 * 1024) { // 5MB limit
             $message = 'Plik jest zbyt duży. Maksymalny rozmiar to 5MB.';
             $message_type = 'error';
+        } elseif ($file['size'] === 0) {
+            $message = 'Plik jest pusty.';
+            $message_type = 'error';
         } else {
             // Przesunięcie pliku do tymczasowej lokalizacji
-            $temp_file = '../uploads/import_' . time() . '_' . basename($file['name']);
+            // Create unique filename with timestamp and random component
+            $temp_file = '../uploads/import_' . time() . '_' . uniqid() . '_' . basename($file['name']);
             if (move_uploaded_file($file['tmp_name'], $temp_file)) {
                 try {
-                    // Parsowanie pliku
+                    // Walidacja rozszerzenia pliku
                     $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                    if ($file_extension === 'csv') {
-                        $data = parse_csv_file($temp_file, ';'); // Używamy średnika jako separatora dla polskich plików
-                    } elseif ($file_extension === 'xlsx') {
-                        $data = parse_xlsx_file($temp_file);
+                    $allowed_extensions = ['csv', 'xlsx'];
+                    
+                    if (!in_array($file_extension, $allowed_extensions)) {
+                        $message = 'Nieprawidłowe rozszerzenie pliku. Dozwolone są tylko CSV i XLSX.';
+                        $message_type = 'error';
                     } else {
-                        throw new Exception('Nieobsługiwany format pliku');
+                        // Parsowanie pliku
+                        if ($file_extension === 'csv') {
+                            $data = parse_csv_file($temp_file, ';'); // Używamy średnika jako separatora dla polskich plików
+                        } elseif ($file_extension === 'xlsx') {
+                            $data = parse_xlsx_file($temp_file);
+                        } else {
+                            throw new Exception('Nieobsługiwany format pliku');
+                        }
                     }
                     
                     if (empty($data)) {
