@@ -29,30 +29,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dodaj_nieobecnosc']))
             $message = 'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia';
             $message_type = 'error';
         } else {
-            $stmt = $conn->prepare("INSERT INTO nieobecnosci (nauczyciel_id, data_od, data_do, powod) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("isss", $nauczyciel_id, $data_od, $data_do, $powod);
-
-            if ($stmt->execute()) {
-                $nieobecnosc_id = $conn->insert_id;
-
-                // Generujemy zastępstwa
-                $generator = new GeneratorZastepstw($conn);
-                $wynik = $generator->generujZastepstwa($nieobecnosc_id);
-
-                $message = "Nieobecność została dodana. Utworzono {$wynik['utworzone']} zastępstw.";
-                if (count($wynik['pominiete']) > 0) {
-                    $message .= " Pominięto " . count($wynik['pominiete']) . " lekcji (początkowe/końcowe godziny klasy).";
-                }
-                if (count($wynik['niemozliwe']) > 0) {
-                    $message .= " Nie udało się utworzyć zastępstw dla " . count($wynik['niemozliwe']) . " lekcji (brak dostępnych nauczycieli).";
-                }
-                $message_type = 'success';
-            } else {
-                error_log("Błąd dodawania nieobecności: " . $stmt->error);
-                $message = 'Błąd podczas dodawania nieobecności';
+            // Sprawdź czy nie ma nakładających się nieobecności dla tego nauczyciela
+            $check_stmt = $conn->prepare("
+                SELECT id, data_od, data_do FROM nieobecnosci
+                WHERE nauczyciel_id = ?
+                AND ((data_od <= ? AND data_do >= ?) OR (data_od <= ? AND data_do >= ?) OR (data_od >= ? AND data_do <= ?))
+            ");
+            $check_stmt->bind_param("isssss", $nauczyciel_id, $data_od, $data_od, $data_do, $data_do, $data_od, $data_do);
+            $check_stmt->execute();
+            $existing = $check_stmt->get_result();
+            
+            if ($existing->num_rows > 0) {
+                $row = $existing->fetch_assoc();
+                error_log("Próba dodania duplikatu nieobecności dla nauczyciela ID: $nauczyciel_id. Nowy okres: $data_od - $data_do, Istniejący: " . $row['data_od'] . " - " . $row['data_do']);
+                $message = 'Ten nauczyciel ma już zarejestrowaną nieobecność w podanym okresie czasu';
                 $message_type = 'error';
+                $check_stmt->close();
+            } else {
+                $check_stmt->close();
+                $stmt = $conn->prepare("INSERT INTO nieobecnosci (nauczyciel_id, data_od, data_do, powod) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("isss", $nauczyciel_id, $data_od, $data_do, $powod);
+
+                if ($stmt->execute()) {
+                    error_log("Pomyślnie dodano nieobecność dla nauczyciela ID: $nauczyciel_id, okres: $data_od - $data_do");
+                    $nieobecnosc_id = $conn->insert_id;
+
+                    // Generujemy zastępstwa
+                    $generator = new GeneratorZastepstw($conn);
+                    $wynik = $generator->generujZastepstwa($nieobecnosc_id);
+
+                    $message = "Nieobecność została dodana. Utworzono {$wynik['utworzone']} zastępstw.";
+                    if (count($wynik['pominiete']) > 0) {
+                        $message .= " Pominięto " . count($wynik['pominiete']) . " lekcji (początkowe/końcowe godziny klasy).";
+                    }
+                    if (count($wynik['niemozliwe']) > 0) {
+                        $message .= " Nie udało się utworzyć zastępstw dla " . count($wynik['niemozliwe']) . " lekcji (brak dostępnych nauczycieli).";
+                    }
+                    $message_type = 'success';
+                } else {
+                    error_log("Błąd dodawania nieobecności: " . $stmt->error);
+                    $message = 'Błąd podczas dodawania nieobecności';
+                    $message_type = 'error';
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
     }
 }

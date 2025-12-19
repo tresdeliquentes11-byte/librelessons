@@ -23,18 +23,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dodaj_dzien'])) {
             $message = 'Nieprawidłowy format daty';
             $message_type = 'error';
         } else {
-            $stmt = $conn->prepare("INSERT INTO dni_wolne (data, opis) VALUES (?, ?)");
-            $stmt->bind_param("ss", $data, $opis);
-
-            if ($stmt->execute()) {
-                $message = 'Dzień wolny został dodany';
-                $message_type = 'success';
-            } else {
-                error_log("Błąd dodawania dnia wolnego: " . $stmt->error);
-                $message = 'Ten dzień jest już w kalendarzu';
+            // Sprawdź czy dzień już istnieje
+            $check_stmt = $conn->prepare("SELECT id FROM dni_wolne WHERE data = ?");
+            $check_stmt->bind_param("s", $data);
+            $check_stmt->execute();
+            $existing = $check_stmt->get_result();
+            
+            if ($existing->num_rows > 0) {
+                error_log("Próba dodania duplikatu dnia wolnego: " . $data);
+                $message = 'Ten dzień już istnieje w kalendarzu';
                 $message_type = 'error';
+                $check_stmt->close();
+            } else {
+                $check_stmt->close();
+                $stmt = $conn->prepare("INSERT INTO dni_wolne (data, opis) VALUES (?, ?)");
+                $stmt->bind_param("ss", $data, $opis);
+
+                if ($stmt->execute()) {
+                    error_log("Pomyślnie dodano dzień wolny: " . $data . " - " . $opis);
+                    $message = 'Dzień wolny został dodany';
+                    $message_type = 'success';
+                } else {
+                    error_log("Błąd dodawania dnia wolnego: " . $stmt->error);
+                    $message = 'Błąd podczas dodawania dnia wolnego';
+                    $message_type = 'error';
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
     }
 }

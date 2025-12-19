@@ -121,12 +121,16 @@ $dni_tygodnia = [
                 
                 <?php if ($klasa_id): ?>
                     <div class="week-navigation">
-                        <button onclick="location.href='?klasa_id=<?php echo $klasa_id; ?>&tydzien=<?php echo $tydzien_offset - 1; ?>'">← Poprzedni tydzień</button>
+                        <a href="?klasa_id=<?php echo $klasa_id; ?>&tydzien=<?php echo $tydzien_offset - 1; ?>" class="btn btn-secondary">← Poprzedni tydzień</a>
                         <span class="current-week">
                             <?php echo formatuj_date($poczatek_tygodnia); ?> - <?php echo formatuj_date($koniec_tygodnia); ?>
                         </span>
-                        <button onclick="location.href='?klasa_id=<?php echo $klasa_id; ?>&tydzien=<?php echo $tydzien_offset + 1; ?>'">Następny tydzień →</button>
+                        <a href="?klasa_id=<?php echo $klasa_id; ?>&tydzien=<?php echo $tydzien_offset + 1; ?>" class="btn btn-secondary">Następny tydzień →</a>
                     </div>
+                    <script>
+                        console.log('Plan podglad - klasa_id: <?php echo $klasa_id; ?>, tydzien_offset: <?php echo $tydzien_offset; ?>');
+                        console.log('Początek tygodnia: <?php echo $poczatek_tygodnia; ?>, Koniec tygodnia: <?php echo $koniec_tygodnia; ?>');
+                    </script>
                 <?php endif; ?>
             </div>
             
