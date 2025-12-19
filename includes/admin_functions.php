@@ -8,6 +8,36 @@
 
 require_once 'config.php';
 
+/**
+ * Waliduje ID użytkownika pobrane z zapytania HTTP
+ * @param mixed $id ID do walidacji
+ * @return int|false Zwraca poprawne ID lub false w przypadku błędu
+ */
+function waliduj_id_uzytkownika($id) {
+    // Konwertuj na integer
+    $id = intval($id);
+    
+    // Sprawdź czy ID jest dodatnie
+    if ($id <= 0) {
+        return false;
+    }
+    
+    // Sprawdź czy użytkownik istnieje
+    global $conn;
+    $stmt = $conn->prepare("SELECT id FROM uzytkownicy WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        $stmt->close();
+        return false;
+    }
+    
+    $stmt->close();
+    return $id;
+}
+
 // Loguje aktywność użytkownika
 
 function loguj_aktywnosc($uzytkownik_id, $typ_akcji, $opis, $dodatkowe_dane = null) {
@@ -52,39 +82,20 @@ function zarzadzaj_sesja($uzytkownik_id, $akcja = 'login') {
         $stmt->execute();
         $stmt->close();
     } elseif ($akcja === 'activity') {
-        // Diagnostyka - sprawdź stan przed aktualizacją
-        $check_stmt = $conn->prepare("SELECT uzytkownik_id, ostatnia_aktywnosc, aktywna FROM sesje_uzytkownikow WHERE session_id = ?");
-        $check_stmt->bind_param("s", $session_id);
-        $check_stmt->execute();
-        $before_update = $check_stmt->get_result()->fetch_assoc();
-        error_log("[DIAGNOSTYKA] Stan sesji PRZED aktualizacją activity: " . print_r($before_update, true));
-        $check_stmt->close();
-        
-        // Poprawione: użyj NOW() zamiast CURRENT_TIMESTAMP dla spójności (UTC_TIMESTAMP może nie być wspierane)
+        // Użyj NOW() zamiast CURRENT_TIMESTAMP dla spójności
         $stmt = $conn->prepare("UPDATE sesje_uzytkownikow SET ostatnia_aktywnosc = NOW() WHERE session_id = ? AND aktywna = 1");
         $stmt->bind_param("s", $session_id);
         $stmt->execute();
-        $affected_rows = $stmt->affected_rows; // Zapisz affected_rows przed zamknięciem
-        error_log("[DIAGNOSTYKA] Zapytanie UPDATE activity wykonane, affected_rows: " . $affected_rows);
+        $affected_rows = $stmt->affected_rows;
         $stmt->close();
         
-        // Jeśli nie znaleziono aktywnej sesji, spróbuj utworzyć nową
-        if ($affected_rows == 0 && $before_update && $before_update['aktywna'] == 0) {
-            error_log("[DIAGNOSTYKA] Sesja była nieaktywna, próbuję reaktywować");
+        // Jeśli nie znaleziono aktywnej sesji, spróbuj reaktywować
+        if ($affected_rows == 0) {
             $reactivate_stmt = $conn->prepare("UPDATE sesje_uzytkownikow SET aktywna = 1, ostatnia_aktywnosc = NOW() WHERE session_id = ?");
             $reactivate_stmt->bind_param("s", $session_id);
             $reactivate_stmt->execute();
-            error_log("[DIAGNOSTYKA] Reaktywacja sesji, affected_rows: " . $reactivate_stmt->affected_rows);
             $reactivate_stmt->close();
         }
-        
-        // Diagnostyka - sprawdź stan po aktualizacji
-        $check_stmt = $conn->prepare("SELECT uzytkownik_id, ostatnia_aktywnosc, aktywna FROM sesje_uzytkownikow WHERE session_id = ?");
-        $check_stmt->bind_param("s", $session_id);
-        $check_stmt->execute();
-        $after_update = $check_stmt->get_result()->fetch_assoc();
-        error_log("[DIAGNOSTYKA] Stan sesji PO aktualizacji activity: " . print_r($after_update, true));
-        $check_stmt->close();
     }
 }
 
@@ -94,24 +105,8 @@ function zarzadzaj_sesja($uzytkownik_id, $akcja = 'login') {
 function wyczysc_nieaktywne_sesje() {
     global $conn;
     
-    // Diagnostyka - sprawdź stan przed czyszczeniem
-    $before_result = $conn->query("SELECT COUNT(*) as total, SUM(CASE WHEN aktywna = 1 THEN 1 ELSE 0 END) as active FROM sesje_uzytkownikow");
-    $before = $before_result->fetch_assoc();
-    error_log("[DIAGNOSTYKA] Przed czyszczeniem sesji: " . $before['active'] . " aktywnych z " . $before['total'] . " total");
-    
-    // Poprawione: użyj UTC_TIMESTAMP() dla spójności z resztą systemu
-    // Sprawdź które sesje zostaną oznaczone jako nieaktywne
-    $to_deactivate_result = $conn->query("SELECT COUNT(*) as to_deactivate FROM sesje_uzytkownikow WHERE ostatnia_aktywnosc < DATE_SUB(NOW(), INTERVAL 30 MINUTE) AND aktywna = 1");
-    $to_deactivate = $to_deactivate_result->fetch_assoc();
-    error_log("[DIAGNOSTYKA] Sesje do deaktywacji: " . $to_deactivate['to_deactivate']);
-    
+    // Użyj UTC_TIMESTAMP() dla spójności z resztą systemu
     $result = $conn->query("UPDATE sesje_uzytkownikow SET aktywna = 0 WHERE ostatnia_aktywnosc < DATE_SUB(NOW(), INTERVAL 30 MINUTE) AND aktywna = 1");
-    error_log("[DIAGNOSTYKA] Zapytanie UPDATE czyszczenia wykonane, affected_rows: " . $conn->affected_rows);
-    
-    // Diagnostyka - sprawdź stan po czyszczeniu
-    $after_result = $conn->query("SELECT COUNT(*) as total, SUM(CASE WHEN aktywna = 1 THEN 1 ELSE 0 END) as active FROM sesje_uzytkownikow");
-    $after = $after_result->fetch_assoc();
-    error_log("[DIAGNOSTYKA] Po czyszczeniu sesji: " . $after['active'] . " aktywnych z " . $after['total'] . " total");
 }
 
 /**
@@ -467,10 +462,9 @@ function pobierz_aktywnych_uzytkownikow() {
 function pobierz_liste_aktywnych_uzytkownikow() {
     global $conn;
 
-    error_log("[DIAGNOSTYKA] Rozpoczynam pobieranie listy aktywnych użytkowników");
     wyczysc_nieaktywne_sesje();
 
-    // Poprawione: użyj NOW() i obliczaj różnicę w minutach
+    // Użyj NOW() i obliczaj różnicę w minutach
     $sql = "
         SELECT u.id, u.login, u.imie, u.nazwisko, u.typ,
                su.ip_address, su.ostatnia_aktywnosc, su.data_logowania,
@@ -482,15 +476,9 @@ function pobierz_liste_aktywnych_uzytkownikow() {
         AND u.aktywny = 1  -- Dodatkowy filtr: tylko aktywni użytkownicy
         ORDER BY su.ostatnia_aktywnosc DESC
     ";
-    error_log("[DIAGNOSTYKA] SQL zapytanie: " . $sql);
     
     $result = $conn->query($sql);
     $sessions = $result->fetch_all(MYSQLI_ASSOC);
-    
-    error_log("[DIAGNOSTYKA] Znaleziono " . count($sessions) . " aktywnych sesji");
-    foreach ($sessions as $session) {
-        error_log("[DIAGNOSTYKA] Sesja: Użytkownik " . $session['login'] . " (ID: " . $session['id'] . "), Ostatnia aktywność: " . $session['ostatnia_aktywnosc'] . ", Minut temu: " . $session['minuty_od_aktywnosci'] . ", Sekund sesji: " . $session['sekundy_sesji']);
-    }
 
     return $sessions;
 }
@@ -631,6 +619,118 @@ function loguj_operacje_uzytkownika($typ_operacji, $uzytkownik_docelowy_id, $opi
     $stmt->bind_param("isiss", $administrator_id, $typ_operacji, $uzytkownik_docelowy_id, $typ_uzytkownika, $opis_zmian);
     $stmt->execute();
     $stmt->close();
+}
+
+/**
+ * Uniwersalna funkcja do obsługi akcji na użytkownikach (blokuj/odblokuj/usun)
+ * @param string $typ_uzytkownika Typ użytkownika do filtrowania
+ * @return array Zwraca wiadomość i typ wiadomości
+ */
+function obsluz_akcje_uzytkownika($typ_uzytkownika = null) {
+    $message = '';
+    $message_type = '';
+    
+    if (isset($_POST['akcja']) && isset($_POST['id'])) {
+        // CSRF Protection
+        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+            return ['message' => 'Nieprawidłowe żądanie. Odśwież stronę i spróbuj ponownie.', 'type' => 'error'];
+        }
+        
+        $id = waliduj_id_uzytkownika($_POST['id']);
+        if ($id === false) {
+            return ['message' => 'Nieprawidłowe ID użytkownika.', 'type' => 'error'];
+        }
+        
+        // Sprawdź czy użytkownik istnieje i jest odpowiedniego typu
+        if ($typ_uzytkownika) {
+            $uzytkownik = pobierz_uzytkownika($id);
+            if (!$uzytkownik || $uzytkownik['typ'] !== $typ_uzytkownika) {
+                return ['message' => 'Użytkownik nie istnieje lub ma nieprawidłowy typ.', 'type' => 'error'];
+            }
+        }
+        
+        $akcja = $_POST['akcja'];
+        
+        switch ($akcja) {
+            case 'blokuj':
+                $result = zmien_status_uzytkownika($id, 0);
+                $message = $result['message'];
+                $message_type = $result['success'] ? 'success' : 'error';
+                if ($result['success']) {
+                    loguj_operacje_uzytkownika('blokada', $id, "Zablokowano użytkownika ID: $id");
+                }
+                break;
+                
+            case 'odblokuj':
+                $result = zmien_status_uzytkownika($id, 1);
+                $message = $result['message'];
+                $message_type = $result['success'] ? 'success' : 'error';
+                if ($result['success']) {
+                    loguj_operacje_uzytkownika('odblokowanie', $id, "Odblokowano użytkownika ID: $id");
+                }
+                break;
+                
+            case 'usun':
+                // NAJPIERW loguj (przed usunięciem!)
+                loguj_operacje_uzytkownika('usuniecie', $id, "Usunięto użytkownika ID: $id");
+                
+                // POTEM usuń
+                $result = usun_uzytkownika($id);
+                $message = $result['message'];
+                $message_type = $result['success'] ? 'success' : 'error';
+                break;
+                
+            default:
+                $message = 'Nieprawidłowa akcja.';
+                $message_type = 'error';
+        }
+    }
+    
+    return ['message' => $message, 'type' => $message_type];
+}
+
+/**
+ * Generuje przyciski akcji dla tabeli użytkowników
+ * @param array $uzytkownik Dane użytkownika
+ * @param string $plik Celowy plik dla formularzy
+ * @return string HTML z przyciskami akcji
+ */
+function generuj_przyciski_akcji($uzytkownik, $plik) {
+    $html = '<a href="' . $plik . '?edytuj=' . $uzytkownik['id'] . '" class="btn btn-sm btn-primary">Edytuj</a>';
+    
+    if ($uzytkownik['aktywny']) {
+        $html .= '
+            <form method="POST" action="' . $plik . '" style="display: inline;">
+                ' . csrf_field() . '
+                <input type="hidden" name="id" value="' . $uzytkownik['id'] . '">
+                <input type="hidden" name="akcja" value="blokuj">
+                <button type="submit" class="btn btn-sm btn-warning"
+                        onclick="return confirm(\'Czy na pewno chcesz zablokować tego użytkownika?\')">
+                    Blokuj
+                </button>
+            </form>';
+    } else {
+        $html .= '
+            <form method="POST" action="' . $plik . '" style="display: inline;">
+                ' . csrf_field() . '
+                <input type="hidden" name="id" value="' . $uzytkownik['id'] . '">
+                <input type="hidden" name="akcja" value="odblokuj">
+                <button type="submit" class="btn btn-sm btn-success">Odblokuj</button>
+            </form>';
+    }
+    
+    $html .= '
+        <form method="POST" action="' . $plik . '" style="display: inline;">
+            ' . csrf_field() . '
+            <input type="hidden" name="id" value="' . $uzytkownik['id'] . '">
+            <input type="hidden" name="akcja" value="usun">
+            <button type="submit" class="btn btn-sm btn-danger"
+                    onclick="return confirm(\'Czy na pewno chcesz usunąć tego użytkownika? Ta operacja jest nieodwracalna!\')">
+                Usuń
+            </button>
+        </form>';
+    
+    return $html;
 }
 
 ?>

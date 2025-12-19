@@ -3,42 +3,12 @@ require_once '../includes/config.php';
 require_once '../includes/admin_functions.php';
 sprawdz_uprawnienia('administrator');
 
-// Diagnostyka - zapisz czas serwera i bazy danych
-$server_time = date('Y-m-d H:i:s');
-error_log("[DIAGNOSTYKA] Czas serwera PHP: " . $server_time);
-
-// Sprawdź czas bazy danych
 global $conn;
-try {
-    $db_time_result = $conn->query("SELECT NOW() as db_time, UTC_TIMESTAMP() as utc_time");
-    $db_time = $db_time_result->fetch_assoc();
-    error_log("[DIAGNOSTYKA] Czas bazy danych: " . $db_time['db_time'] . ", UTC: " . $db_time['utc_time']);
-} catch (Exception $e) {
-    error_log("[DIAGNOSTYKA] Błąd zapytania czasowego: " . $e->getMessage());
-    // Fallback - użyj tylko NOW() jeśli UTC_TIMESTAMP nie działa
-    $db_time_result = $conn->query("SELECT NOW() as db_time");
-    $db_time = $db_time_result->fetch_assoc();
-    error_log("[DIAGNOSTYKA] Czas bazy danych (fallback): " . $db_time['db_time']);
-}
 
 zarzadzaj_sesja($_SESSION['user_id'], 'activity');
 
-// Diagnostyka - sprawdź sesję po aktualizacji
-$session_check = $conn->prepare("SELECT session_id, uzytkownik_id, ostatnia_aktywnosc, data_logowania, aktywna FROM sesje_uzytkownikow WHERE session_id = ?");
-$session_id = session_id();
-$session_check->bind_param("s", $session_id);
-$session_check->execute();
-$current_session = $session_check->get_result()->fetch_assoc();
-error_log("[DIAGNOSTYKA] Sesja po aktualizacji: " . print_r($current_session, true));
-
 // Pobierz listę aktywnych użytkowników
 $aktywne_sesje = pobierz_liste_aktywnych_uzytkownikow();
-
-// Diagnostyka - zapisz liczbę sesji przed i po czyszczeniu
-$all_sessions_result = $conn->query("SELECT COUNT(*) as total, SUM(CASE WHEN aktywna = 1 THEN 1 ELSE 0 END) as active FROM sesje_uzytkownikow");
-$all_sessions = $all_sessions_result->fetch_assoc();
-error_log("[DIAGNOSTYKA] Wszystkie sesje: " . $all_sessions['total'] . ", Aktywne: " . $all_sessions['active']);
-error_log("[DIAGNOSTYKA] Zwrócone aktywne sesje: " . count($aktywne_sesje));
 ?>
 <!DOCTYPE html>
 <html lang="pl">

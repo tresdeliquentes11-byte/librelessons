@@ -11,7 +11,11 @@ $message_type = '';
 
 // Obsługa akcji
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['dodaj'])) {
+    // CSRF Protection
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $message = 'Nieprawidłowe żądanie. Odśwież stronę i spróbuj ponownie.';
+        $message_type = 'error';
+    } elseif (isset($_POST['dodaj'])) {
         // Dodawanie ucznia
         $dane = [
             'login' => $_POST['login'],
@@ -57,39 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Obsługa akcji GET
-if (isset($_GET['akcja'])) {
-    $id = $_GET['id'] ?? 0;
-
-    switch ($_GET['akcja']) {
-        case 'blokuj':
-            $result = zmien_status_uzytkownika($id, 0);
-            $message = $result['message'];
-            $message_type = $result['success'] ? 'success' : 'error';
-            if ($result['success']) {
-                loguj_operacje_uzytkownika('blokada', $id, "Zablokowano ucznia ID: $id");
-            }
-            break;
-
-        case 'odblokuj':
-            $result = zmien_status_uzytkownika($id, 1);
-            $message = $result['message'];
-            $message_type = $result['success'] ? 'success' : 'error';
-            if ($result['success']) {
-                loguj_operacje_uzytkownika('odblokowanie', $id, "Odblokowano ucznia ID: $id");
-            }
-            break;
-
-        case 'usun':
-            // NAJPIERW loguj (przed usunięciem!)
-            loguj_operacje_uzytkownika('usuniecie', $id, "Usunięto ucznia ID: $id");
-
-            // POTEM usuń
-            $result = usun_uzytkownika($id);
-            $message = $result['message'];
-            $message_type = $result['success'] ? 'success' : 'error';
-            break;
-    }
+// Obsługa akcji POST
+if (isset($_POST['akcja'])) {
+    $wynik = obsluz_akcje_uzytkownika('uczen');
+    $message = $wynik['message'];
+    $message_type = $wynik['type'];
 }
 
 // Pobierz dane
@@ -107,17 +83,20 @@ $klasy = pobierz_klasy();
 // Dane do edycji
 $edytowany_uzytkownik = null;
 if (isset($_GET['edytuj'])) {
-    $edytowany_uzytkownik = pobierz_uzytkownika($_GET['edytuj']);
-    if ($edytowany_uzytkownik) {
-        // Pobierz klasę ucznia
-        $stmt = $conn->prepare("SELECT klasa_id FROM uczniowie WHERE uzytkownik_id = ?");
-        $stmt->bind_param("i", $edytowany_uzytkownik['id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($row = $result->fetch_assoc()) {
-            $edytowany_uzytkownik['klasa_id'] = $row['klasa_id'];
+    $id = waliduj_id_uzytkownika($_GET['edytuj']);
+    if ($id !== false) {
+        $edytowany_uzytkownik = pobierz_uzytkownika($id);
+        if ($edytowany_uzytkownik) {
+            // Pobierz klasę ucznia
+            $stmt = $conn->prepare("SELECT klasa_id FROM uczniowie WHERE uzytkownik_id = ?");
+            $stmt->bind_param("i", $edytowany_uzytkownik['id']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($row = $result->fetch_assoc()) {
+                $edytowany_uzytkownik['klasa_id'] = $row['klasa_id'];
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 ?>
@@ -154,6 +133,7 @@ if (isset($_GET['edytuj'])) {
                         <?php echo $edytowany_uzytkownik ? 'Edytuj ucznia' : 'Dodaj nowego ucznia'; ?>
                     </h3>
                     <form method="POST" action="uczniowie.php">
+                        <?php echo csrf_field(); ?>
                         <?php if ($edytowany_uzytkownik): ?>
                             <input type="hidden" name="id" value="<?php echo $edytowany_uzytkownik['id']; ?>">
                         <?php endif; ?>
@@ -256,26 +236,7 @@ if (isset($_GET['edytuj'])) {
                                                 <a href="uczniowie.php?edytuj=<?php echo $u['id']; ?>" class="btn btn-sm btn-primary" title="Edytuj">
                                                     Edytuj
                                                 </a>
-                                                <?php if ($u['aktywny']): ?>
-                                                    <a href="uczniowie.php?akcja=blokuj&id=<?php echo $u['id']; ?>"
-                                                       class="btn btn-sm btn-warning"
-                                                       onclick="return confirm('Czy na pewno chcesz zablokować tego ucznia?')"
-                                                       title="Zablokuj">
-                                                        Blokuj
-                                                    </a>
-                                                <?php else: ?>
-                                                    <a href="uczniowie.php?akcja=odblokuj&id=<?php echo $u['id']; ?>"
-                                                       class="btn btn-sm btn-success"
-                                                       title="Odblokuj">
-                                                        Odblokuj
-                                                    </a>
-                                                <?php endif; ?>
-                                                <a href="uczniowie.php?akcja=usun&id=<?php echo $u['id']; ?>"
-                                                   class="btn btn-sm btn-danger"
-                                                   onclick="return confirm('Czy na pewno chcesz usunąć tego ucznia? Ta operacja jest nieodwracalna!')"
-                                                   title="Usuń">
-                                                    Usuń
-                                                </a>
+                                                <?php echo generuj_przyciski_akcji($u, 'uczniowie.php'); ?>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>

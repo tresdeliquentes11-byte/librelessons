@@ -50,39 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result['success']) {
             loguj_operacje_uzytkownika('edycja', $id, "Zaktualizowano administratora: {$dane['login']}");
         }
-    } elseif (isset($_POST['akcja']) && isset($_POST['id'])) {
-        $id = intval($_POST['id']);
-        $akcja = $_POST['akcja'];
-
-        switch ($akcja) {
-            case 'blokuj':
-                $result = zmien_status_uzytkownika($id, 0);
-                $message = $result['message'];
-                $message_type = $result['success'] ? 'success' : 'error';
-                if ($result['success']) {
-                    loguj_operacje_uzytkownika('blokada', $id, "Zablokowano administratora ID: $id");
-                }
-                break;
-
-            case 'odblokuj':
-                $result = zmien_status_uzytkownika($id, 1);
-                $message = $result['message'];
-                $message_type = $result['success'] ? 'success' : 'error';
-                if ($result['success']) {
-                    loguj_operacje_uzytkownika('odblokowanie', $id, "Odblokowano administratora ID: $id");
-                }
-                break;
-
-            case 'usun':
-                // NAJPIERW loguj (przed usunięciem!)
-                loguj_operacje_uzytkownika('usuniecie', $id, "Usunięto administratora ID: $id");
-
-                // POTEM usuń
-                $result = usun_uzytkownika($id);
-                $message = $result['message'];
-                $message_type = $result['success'] ? 'success' : 'error';
-                break;
-        }
+    } elseif (isset($_POST['akcja'])) {
+        $wynik = obsluz_akcje_uzytkownika('administrator');
+        $message = $wynik['message'];
+        $message_type = $wynik['type'];
     }
 }
 
@@ -90,7 +61,10 @@ $administratorzy = pobierz_uzytkownikow('administrator');
 
 $edytowany_uzytkownik = null;
 if (isset($_GET['edytuj'])) {
-    $edytowany_uzytkownik = pobierz_uzytkownika($_GET['edytuj']);
+    $id = waliduj_id_uzytkownika($_GET['edytuj']);
+    if ($id !== false) {
+        $edytowany_uzytkownik = pobierz_uzytkownika($id);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -200,22 +174,7 @@ if (isset($_GET['edytuj'])) {
                                             </td>
                                             <td><?php echo date('d.m.Y', strtotime($u['data_utworzenia'])); ?></td>
                                             <td class="table-actions">
-                                                <a href="administratorzy.php?edytuj=<?php echo $u['id']; ?>" class="btn btn-sm btn-primary">Edytuj</a>
-                                                <?php if ($u['aktywny']): ?>
-                                                    <a href="administratorzy.php?akcja=blokuj&id=<?php echo $u['id']; ?>"
-                                                       class="btn btn-sm btn-warning"
-                                                       onclick="return confirm('Czy na pewno chcesz zablokować tego administratora?')">
-                                                        Blokuj
-                                                    </a>
-                                                <?php else: ?>
-                                                    <a href="administratorzy.php?akcja=odblokuj&id=<?php echo $u['id']; ?>"
-                                                       class="btn btn-sm btn-success">Odblokuj</a>
-                                                <?php endif; ?>
-                                                <a href="administratorzy.php?akcja=usun&id=<?php echo $u['id']; ?>"
-                                                   class="btn btn-sm btn-danger"
-                                                   onclick="return confirm('Czy na pewno chcesz usunąć tego administratora? Ta operacja jest nieodwracalna!')">
-                                                    Usuń
-                                                </a>
+                                                <?php echo generuj_przyciski_akcji($u, 'administratorzy.php'); ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
