@@ -3,10 +3,34 @@ require_once '../includes/config.php';
 require_once '../includes/admin_functions.php';
 sprawdz_uprawnienia('administrator');
 
+// Diagnostyka - zapisz czas serwera i bazy danych
+$server_time = date('Y-m-d H:i:s');
+error_log("[DIAGNOSTYKA] Czas serwera PHP: " . $server_time);
+
+// Sprawdź czas bazy danych
+global $conn;
+$db_time_result = $conn->query("SELECT NOW() as db_time, UTC_TIMESTAMP() as utc_time");
+$db_time = $db_time_result->fetch_assoc();
+error_log("[DIAGNOSTYKA] Czas bazy danych: " . $db_time['db_time'] . ", UTC: " . $db_time['utc_time']);
+
 zarzadzaj_sesja($_SESSION['user_id'], 'activity');
+
+// Diagnostyka - sprawdź sesję po aktualizacji
+$session_check = $conn->prepare("SELECT session_id, uzytkownik_id, ostatnia_aktywnosc, data_logowania, aktywna FROM sesje_uzytkownikow WHERE session_id = ?");
+$session_id = session_id();
+$session_check->bind_param("s", $session_id);
+$session_check->execute();
+$current_session = $session_check->get_result()->fetch_assoc();
+error_log("[DIAGNOSTYKA] Sesja po aktualizacji: " . print_r($current_session, true));
 
 // Pobierz listę aktywnych użytkowników
 $aktywne_sesje = pobierz_liste_aktywnych_uzytkownikow();
+
+// Diagnostyka - zapisz liczbę sesji przed i po czyszczeniu
+$all_sessions_result = $conn->query("SELECT COUNT(*) as total, SUM(CASE WHEN aktywna = 1 THEN 1 ELSE 0 END) as active FROM sesje_uzytkownikow");
+$all_sessions = $all_sessions_result->fetch_assoc();
+error_log("[DIAGNOSTYKA] Wszystkie sesje: " . $all_sessions['total'] . ", Aktywne: " . $all_sessions['active']);
+error_log("[DIAGNOSTYKA] Zwrócone aktywne sesje: " . count($aktywne_sesje));
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -16,7 +40,34 @@ $aktywne_sesje = pobierz_liste_aktywnych_uzytkownikow();
     <title>Aktywne Sesje - Panel Administratora</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin.css">
+    <!-- Poprawione odświeżanie - dodanie cache control i JavaScript -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta http-equiv="refresh" content="30">
+    <script>
+        // Dodatkowe odświeżanie JavaScript jako fallback
+        let refreshInterval = setInterval(function() {
+            // Dodaj losowy parametr aby uniknąć cache
+            window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+        }, 30000);
+        
+        // Zatrzymaj odświeżanie jeśli użytkownik interaktywnie korzysta ze strony
+        let userActivity = false;
+        document.addEventListener('mousemove', function() { userActivity = true; });
+        document.addEventListener('keypress', function() { userActivity = true; });
+        
+        // Resetuj interwał odświeżania po aktywności użytkownika
+        setInterval(function() {
+            if (userActivity) {
+                clearInterval(refreshInterval);
+                refreshInterval = setInterval(function() {
+                    window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+                }, 30000);
+                userActivity = false;
+            }
+        }, 5000);
+    </script>
 </head>
 <body>
     <div class="admin-layout">
@@ -92,13 +143,20 @@ $aktywne_sesje = pobierz_liste_aktywnych_uzytkownikow();
                                                 <code><?php echo e($sesja['ip_address']); ?></code>
                                             </td>
                                             <td>
-                                                <?php echo date('d.m.Y H:i:s', strtotime($sesja['data_logowania'])); ?>
+                                                <?php
+                                                // Poprawione formatowanie daty z uwzględnieniem strefy czasowej
+                                                $dataLogowania = new DateTime($sesja['data_logowania'], new DateTimeZone('UTC'));
+                                                $dataLogowania->setTimezone(new DateTimeZone('Europe/Warsaw'));
+                                                echo $dataLogowania->format('d.m.Y H:i:s');
+                                                ?>
                                             </td>
                                             <td>
                                                 <?php
-                                                $ostatnia = strtotime($sesja['ostatnia_aktywnosc']);
-                                                $teraz = time();
-                                                $roznica = $teraz - $ostatnia;
+                                                // Poprawione obliczenia czasu z uwzględnieniem strefy czasowej
+                                                $ostatnia = new DateTime($sesja['ostatnia_aktywnosc'], new DateTimeZone('UTC'));
+                                                $ostatnia->setTimezone(new DateTimeZone('Europe/Warsaw'));
+                                                $teraz = new DateTime('now', new DateTimeZone('Europe/Warsaw'));
+                                                $roznica = $teraz->getTimestamp() - $ostatnia->getTimestamp();
 
                                                 if ($roznica < 60) {
                                                     $czasTekst = 'teraz';
@@ -110,12 +168,18 @@ $aktywne_sesje = pobierz_liste_aktywnych_uzytkownikow();
                                                     $czasTekst = floor($roznica / 60) . ' min temu';
                                                     $statusClass = 'badge-warning';
                                                 }
+                                                
+                                                // Dodaj dokładny czas dla diagnostyki
+                                                $dokladnyCzas = $ostatnia->format('H:i:s');
                                                 ?>
-                                                <span class="badge <?php echo $statusClass; ?>"><?php echo $czasTekst; ?></span>
+                                                <span class="badge <?php echo $statusClass; ?>" title="Ostatnia aktywność: <?php echo $dokladnyCzas; ?>"><?php echo $czasTekst; ?></span>
                                             </td>
                                             <td>
                                                 <?php
-                                                $czasSesji = $teraz - strtotime($sesja['data_logowania']);
+                                                // Poprawione obliczenia czasu sesji z uwzględnieniem strefy czasowej
+                                                $dataLogowania = new DateTime($sesja['data_logowania'], new DateTimeZone('UTC'));
+                                                $dataLogowania->setTimezone(new DateTimeZone('Europe/Warsaw'));
+                                                $czasSesji = $teraz->getTimestamp() - $dataLogowania->getTimestamp();
                                                 $godziny = floor($czasSesji / 3600);
                                                 $minuty = floor(($czasSesji % 3600) / 60);
 
