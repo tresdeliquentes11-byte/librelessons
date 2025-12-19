@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dodaj_nieobecnosc']))
                 WHERE nauczyciel_id = ?
                 AND ((data_od <= ? AND data_do >= ?) OR (data_od <= ? AND data_do >= ?) OR (data_od >= ? AND data_do <= ?))
             ");
-            $check_stmt->bind_param("isssss", $nauczyciel_id, $data_od, $data_od, $data_do, $data_do, $data_od, $data_do);
+            $check_stmt->bind_param("issssss", $nauczyciel_id, $data_od, $data_do, $data_od, $data_do, $data_od, $data_do);
             $check_stmt->execute();
             $existing = $check_stmt->get_result();
             
